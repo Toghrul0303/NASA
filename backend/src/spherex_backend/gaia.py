@@ -17,10 +17,11 @@ from typing import Any, Literal, Protocol
 
 import numpy as np
 
+from spherex_backend.bounded import CallTimeout, call_with_timeout, remaining_s
 from spherex_backend.config import GaiaConfig
 from spherex_backend.discovery import separation_arcsec
 from spherex_backend.grid import Grid
-from spherex_backend.models import Target
+from spherex_backend.models import PipelineError, Target
 from spherex_backend.timeutil import propagate
 
 ADQL_TEMPLATE = (
@@ -86,9 +87,10 @@ def _optional(value: Any) -> float | None:
 class AstroqueryGaiaClient:
     """Anonymous synchronous ``astroquery.gaia`` queries with a disk cache."""
 
-    def __init__(self, cfg: GaiaConfig, cache_dir: Path) -> None:
+    def __init__(self, cfg: GaiaConfig, cache_dir: Path, deadline: float | None = None) -> None:
         self._cfg = cfg
         self._dir = cache_dir / "gaia"
+        self._deadline = deadline  # time.monotonic() value of the job deadline
 
     def cone(self, ra_deg: float, dec_deg: float, radius_arcsec: float) -> list[GaiaRow]:
         adql = make_adql(self._cfg.table, ra_deg, dec_deg, radius_arcsec)
@@ -98,13 +100,36 @@ class AstroqueryGaiaClient:
                 return [GaiaRow(**r) for r in json.loads(path.read_text(encoding="utf-8"))]
         except (OSError, ValueError, TypeError):
             pass
+        left = remaining_s(self._deadline)
+        if left is not None and left <= 0:
+            raise PipelineError("timeout", "The job exceeded its time limit.", retryable=True)
+        bound = float(self._cfg.timeout_s)
+        if left is not None:
+            bound = min(bound, left)
+        # astroquery has no usable timeout, so bound the call; the cache is written below, in
+        # the caller, which means an abandoned call that finishes late writes nothing.
+        try:
+            rows = call_with_timeout(lambda: self._fetch(adql), bound, "gaia-tap")
+        except CallTimeout:
+            if left is not None and bound >= left:
+                raise PipelineError(
+                    "timeout", "The job exceeded its time limit.", retryable=True
+                ) from None
+            raise
+        self._dir.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text(json.dumps([r.__dict__ for r in rows]), encoding="utf-8")
+        tmp.replace(path)
+        return rows
+
+    def _fetch(self, adql: str) -> list[GaiaRow]:
         from astroquery.gaia import Gaia
 
         Gaia.MAIN_GAIA_TABLE = self._cfg.table
         Gaia.ROW_LIMIT = -1
         job = Gaia.launch_job(adql, dump_to_file=False)
         table = job.get_results()
-        rows = [
+        return [
             GaiaRow(
                 source_id=str(int(rec["source_id"])),
                 ra=float(rec["ra"]),
@@ -118,11 +143,6 @@ class AstroqueryGaiaClient:
             )
             for rec in table
         ]
-        self._dir.mkdir(parents=True, exist_ok=True)
-        tmp = path.with_suffix(".tmp")
-        tmp.write_text(json.dumps([r.__dict__ for r in rows]), encoding="utf-8")
-        tmp.replace(path)
-        return rows
 
 
 def _now_utc() -> str:
@@ -151,6 +171,8 @@ def query_gaia(
     for attempt in range(1, cfg.retries + 1):
         try:
             rows = client.cone(target.input_ra_deg, target.input_dec_deg, radius)
+        except PipelineError:  # the job deadline passed: not a Gaia outage
+            raise
         except Exception:  # astroquery / network errors vary widely
             if attempt < cfg.retries:
                 sleep(2.0 * attempt)

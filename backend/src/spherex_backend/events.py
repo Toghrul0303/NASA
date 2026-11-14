@@ -61,6 +61,8 @@ class EventLog:
     def append(self, event: str, data: dict[str, Any]) -> int:
         """Assign ``id = previous + 1``, persist, notify waiters; returns the id."""
         with self._lock:
+            if self.terminal:  # a closed job (for example on timeout) accepts no late events
+                return len(self._offsets)
             payload = {"job_id": self.job_id, **data}
             event_id = len(self._offsets) + 1
             line = json.dumps(

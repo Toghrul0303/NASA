@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
+from spherex_backend.bounded import CallTimeout, TimeoutSession, call_with_timeout, remaining_s
 from spherex_backend.config import IrsaConfig
 from spherex_backend.models import Exposure, PipelineError, Target
 from spherex_backend.timeutil import propagate
@@ -65,10 +66,12 @@ class PyvoDiscoveryClient:
         irsa: IrsaConfig,
         cache_dir: Path,
         sleep: Callable[[float], None] = time.sleep,
+        deadline: float | None = None,
     ) -> None:
         self._irsa = irsa
         self._dir = cache_dir / "tap"
         self._sleep = sleep
+        self._deadline = deadline  # time.monotonic() value of the job deadline
 
     def query(self, ra_deg: float, dec_deg: float) -> list[TapRow]:
         adql = ADQL_TEMPLATE.format(ra=f"{ra_deg:.9f}", dec=f"{dec_deg:.9f}")
@@ -99,25 +102,47 @@ class PyvoDiscoveryClient:
         )
         tmp.replace(path)
 
-    def _run(self, adql: str) -> list[TapRow]:
+    def _attempt(self, adql: str) -> list[TapRow]:
         import pyvo
 
-        service = pyvo.dal.TAPService(self._irsa.tap_url)
+        timeout = float(self._irsa.tap_timeout_s)
+        # Socket-level timeouts: pyvo's own ``timeout`` only bounds job polling, the initial
+        # POST would otherwise wait forever on a server that never answers.
+        session = TimeoutSession(min(timeout, 10.0), timeout)
+        service = pyvo.dal.TAPService(self._irsa.tap_url, session=session)
+        table = service.run_sync(adql, timeout=timeout).to_table()
+        rows: list[TapRow] = []
+        for rec in table:
+            mjd_raw = rec["time_bounds_lower"]
+            masked = bool(getattr(mjd_raw, "mask", False))
+            mjd = None if masked or not math.isfinite(float(mjd_raw)) else float(mjd_raw)
+            rows.append(TapRow(str(rec["uri"]), mjd, str(rec["energy_bandpassname"])))
+        return rows
+
+    def _run(self, adql: str) -> list[TapRow]:
         last: Exception | None = None
         for attempt in range(1, self._irsa.tap_retries + 1):
+            left = remaining_s(self._deadline)
+            if left is not None and left <= 0:
+                raise PipelineError("timeout", "The job exceeded its time limit.", retryable=True)
+            # Hard bound per attempt: the tier-2 TAP timeout (+ slack for the result transfer),
+            # never beyond the job deadline. A thread that cannot be interrupted is abandoned;
+            # its late result is dropped because caching happens in the caller.
+            bound = float(self._irsa.tap_timeout_s) + 5.0
+            if left is not None:
+                bound = min(bound, left)
             try:
-                table = service.run_sync(adql, timeout=self._irsa.tap_timeout_s).to_table()
-                rows: list[TapRow] = []
-                for rec in table:
-                    mjd_raw = rec["time_bounds_lower"]
-                    masked = bool(getattr(mjd_raw, "mask", False))
-                    mjd = None if masked or not math.isfinite(float(mjd_raw)) else float(mjd_raw)
-                    rows.append(TapRow(str(rec["uri"]), mjd, str(rec["energy_bandpassname"])))
-                return rows
+                return call_with_timeout(lambda: self._attempt(adql), bound, "irsa-tap")
             except Exception as exc:  # pyvo raises several unrelated exception types
                 last = exc
+                if isinstance(exc, CallTimeout) and left is not None and bound >= left:
+                    raise PipelineError(
+                        "timeout", "The job exceeded its time limit.", retryable=True
+                    ) from exc
                 if attempt < self._irsa.tap_retries:
-                    self._sleep(self._irsa.tap_backoff_s * attempt)
+                    pause = self._irsa.tap_backoff_s * attempt
+                    after = remaining_s(self._deadline)
+                    self._sleep(pause if after is None else max(min(pause, after), 0.0))
         raise PipelineError(
             "upstream_unavailable", f"IRSA TAP query failed: {last}", retryable=True
         )

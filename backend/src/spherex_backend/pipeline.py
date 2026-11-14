@@ -16,14 +16,13 @@ from typing import Any, Literal, Protocol
 import numpy as np
 from astropy.utils.data import conf as astropy_data_conf
 
-from spherex_backend import channels, discovery, fetch, sampling
+from spherex_backend import binfmt, channels, discovery, fetch, sampling
 from spherex_backend.alignment import alignment_residuals
 from spherex_backend.coadd import build_coadds, combine
 from spherex_backend.config import LoadedSettings
 from spherex_backend.contract_check import load_registry, validate_directory
 from spherex_backend.export import ExportData, export_run
 from spherex_backend.frames import FrameResult, process_frame
-from spherex_backend import binfmt
 from spherex_backend.gaia import (
     AstroqueryGaiaClient,
     GaiaClient,
@@ -146,8 +145,8 @@ def _run(
 
     # ---- 1. discover ---------------------------------------------------------------------
     stage("discover", "started")
-    dclient = discovery_client or discovery.PyvoDiscoveryClient(irsa, paths.cache_dir, sleep)
-    gclient = gaia_client or AstroqueryGaiaClient(settings.gaia, paths.cache_dir)
+    dclient = discovery_client or discovery.PyvoDiscoveryClient(irsa, paths.cache_dir, sleep, deadline)
+    gclient = gaia_client or AstroqueryGaiaClient(settings.gaia, paths.cache_dir, deadline)
     found = discovery.discover(dclient, target, irsa)
     gaia_query = query_gaia(gclient, target, settings.gaia, sleep)
     target, center = adopt_proper_motion(target, gaia_query, found.t_mid, settings.gaia.match_radius_arcsec)
@@ -464,6 +463,7 @@ def _run(
     stage("gaia", "finished")
 
     # ---- 5. export -------------------------------------------------------------------------
+    check_deadline()
     stage("export", "started")
     thumb_usable = [r for r in ordered if r.good_fraction > 0]
     if thumb_usable:
@@ -532,6 +532,7 @@ def _run(
         validator if registry is not None else None,
         job_id=job_id,
         cache_dir=paths.cache_dir,
+        deadline=deadline,
     )
     stage("export", "finished")
     log.info(

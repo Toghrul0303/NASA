@@ -10,6 +10,7 @@ import hashlib
 import json
 import os
 import shutil
+import time
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -183,6 +184,7 @@ def export_run(
     validate: Callable[[Path], list[Violation]] | None,
     job_id: str | None = None,
     cache_dir: Path | None = None,
+    deadline: float | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Stage, validate and publish; returns ``meta.files`` plus the ``meta.json`` entry."""
     slug = data.target.slug
@@ -223,7 +225,7 @@ def export_run(
                     f"export validation failed ({len(violations)} violations): {shown}",
                     retryable=False,
                 )
-        _publish(staging, data_dir, slug)
+        _publish(staging, data_dir, slug, deadline)
     except BaseException:
         shutil.rmtree(staging, ignore_errors=True)
         raise
@@ -236,13 +238,17 @@ def export_run(
     return {**files, "meta.json": _entry(data_dir / slug / "meta.json")}
 
 
-def _publish(staging: Path, data_dir: Path, slug: str) -> None:
+def _publish(staging: Path, data_dir: Path, slug: str, deadline: float | None = None) -> None:
     locks = data_dir / ".locks"
     trash_root = data_dir / ".trash"
     locks.mkdir(parents=True, exist_ok=True)
     trash_root.mkdir(parents=True, exist_ok=True)
     final = data_dir / slug
     with FileLock(str(locks / f"{slug}.lock")):
+        # A job closed on timeout may still have a live worker thread; it must never replace
+        # data after its deadline (the manager closes the job shortly after it).
+        if deadline is not None and time.monotonic() > deadline:
+            raise PipelineError("timeout", "The job exceeded its time limit.", retryable=True)
         trash: Path | None = None
         if final.exists():
             trash = trash_root / f"{slug}-{uuid.uuid4().hex}"

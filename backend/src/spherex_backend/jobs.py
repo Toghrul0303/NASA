@@ -9,6 +9,7 @@ import logging
 import secrets
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from typing import Any
@@ -19,12 +20,13 @@ from spherex_backend.models import PipelineError, Target
 
 # Imported at module level on purpose: astropy must configure its logger class before the CLI
 # touches logging.getLogger("astropy"); a lazy import inside the worker breaks that order.
-from spherex_backend.pipeline import run_pipeline
+from spherex_backend.pipeline import PipelineOutcome, run_pipeline
 from spherex_backend.targets import tier2_target
 
 log = logging.getLogger("spherex_backend.jobs")
 
 NON_TERMINAL = ("queued", "running")
+CLOSE_GRACE_S = 5.0  # the job is closed at job_timeout_s + this, whatever the worker is doing
 
 
 class QueueFull(Exception):
@@ -233,9 +235,8 @@ class JobManager:
                                          "timestamp_utc": utc_now()})
             deadline = job.started + loaded.settings.jobs.job_timeout_s
             sink = JobSink(job, loaded.settings.jobs.progress_max_hz)
-            outcome = await asyncio.to_thread(
-                run_pipeline, job.request.target(), sink, deadline,
-                loaded=loaded, job_id=job.job_id,
+            outcome = await self._run_bounded(
+                job, sink, deadline, loaded, deadline + CLOSE_GRACE_S
             )
         except PipelineError as exc:
             self._fail(job, exc.code, exc.message, exc.retryable)
@@ -266,6 +267,39 @@ class JobManager:
             self._job_json(job)
             with self._lock:
                 self._active.pop(job.slug, None)
+
+    async def _run_bounded(
+        self, job: Job, sink: JobSink, deadline: float, loaded: LoadedSettings, hard_stop: float
+    ) -> PipelineOutcome:
+        """Run the pipeline on a daemon thread; give up at ``hard_stop`` whatever it is doing.
+
+        The thread cannot be killed. Once abandoned it can neither append events (the log is
+        terminal) nor publish data (``export`` refuses after ``deadline``, which precedes
+        ``hard_stop``).
+        """
+        loop = asyncio.get_running_loop()
+        future: asyncio.Future[PipelineOutcome] = loop.create_future()
+
+        def settle(setter: Callable[[Any], None], value: Any) -> None:
+            if not future.done():
+                setter(value)
+
+        def work() -> None:
+            try:
+                outcome = run_pipeline(
+                    job.request.target(), sink, deadline, loaded=loaded, job_id=job.job_id
+                )
+            except BaseException as exc:
+                loop.call_soon_threadsafe(settle, future.set_exception, exc)
+            else:
+                loop.call_soon_threadsafe(settle, future.set_result, outcome)
+
+        threading.Thread(target=work, name=f"job-{job.job_id}", daemon=True).start()
+        done, _ = await asyncio.wait({future}, timeout=max(hard_stop - time.monotonic(), 0.0))
+        if not done:
+            future.cancel()
+            raise PipelineError("timeout", "The job exceeded its time limit.", retryable=True)
+        return future.result()
 
     def _fail(self, job: Job, code: str, message: str, retryable: bool) -> None:
         job.status = "failed"

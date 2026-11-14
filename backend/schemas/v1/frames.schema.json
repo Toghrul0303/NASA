@@ -1,0 +1,216 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spherex-sky-explorer/schema/v1/frames.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "slug",
+    "data_version",
+    "n_frames",
+    "epochs",
+    "frames"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "common.schema.json#/$defs/schema_version"
+    },
+    "slug": {
+      "$ref": "common.schema.json#/$defs/slug"
+    },
+    "data_version": {
+      "$ref": "common.schema.json#/$defs/data_version"
+    },
+    "n_frames": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "epochs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "epoch_id",
+          "mjd_start",
+          "mjd_end",
+          "mjd_mean",
+          "n_frames",
+          "detectors"
+        ],
+        "properties": {
+          "epoch_id": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "mjd_start": {
+            "$ref": "common.schema.json#/$defs/mjd"
+          },
+          "mjd_end": {
+            "$ref": "common.schema.json#/$defs/mjd"
+          },
+          "mjd_mean": {
+            "$ref": "common.schema.json#/$defs/mjd"
+          },
+          "n_frames": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "detectors": {
+            "type": "array",
+            "items": {
+              "$ref": "common.schema.json#/$defs/detector"
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          }
+        }
+      }
+    },
+    "frames": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/frame"
+      }
+    }
+  },
+  "$defs": {
+    "frame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "index",
+        "frame_key",
+        "obs_id",
+        "release",
+        "processing_version",
+        "detector",
+        "mjd",
+        "obs_time_utc",
+        "epoch_id",
+        "lambda_um",
+        "bandwidth_um",
+        "lambda_min_um",
+        "lambda_max_um",
+        "channel",
+        "target_ra_deg",
+        "target_dec_deg",
+        "target_x",
+        "target_y",
+        "good_fraction",
+        "aperture_pixels",
+        "flag_fractions",
+        "contamination_level",
+        "saturated_pixels",
+        "alignment_residual_px",
+        "source_uri"
+      ],
+      "properties": {
+        "index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "frame_key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "obs_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "release": {
+          "$ref": "common.schema.json#/$defs/release"
+        },
+        "processing_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "detector": {
+          "$ref": "common.schema.json#/$defs/detector"
+        },
+        "mjd": {
+          "$ref": "common.schema.json#/$defs/mjd"
+        },
+        "obs_time_utc": {
+          "$ref": "common.schema.json#/$defs/iso_utc"
+        },
+        "epoch_id": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lambda_um": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "bandwidth_um": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "lambda_min_um": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "lambda_max_um": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "channel": {
+          "$ref": "common.schema.json#/$defs/channel"
+        },
+        "target_ra_deg": {
+          "$ref": "common.schema.json#/$defs/ra_deg"
+        },
+        "target_dec_deg": {
+          "$ref": "common.schema.json#/$defs/dec_deg"
+        },
+        "target_x": {
+          "type": "number"
+        },
+        "target_y": {
+          "type": "number"
+        },
+        "good_fraction": {
+          "$ref": "common.schema.json#/$defs/fraction"
+        },
+        "aperture_pixels": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "flag_fractions": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/flag_fractions"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "contamination_level": {
+          "enum": [
+            0,
+            1,
+            2
+          ]
+        },
+        "saturated_pixels": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "alignment_residual_px": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "source_uri": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

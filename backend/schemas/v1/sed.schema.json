@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spherex-sky-explorer/schema/v1/sed.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "slug",
+    "data_version",
+    "flux_unit",
+    "wavelength_unit",
+    "aperture_radii_px",
+    "primary_aperture_index",
+    "annulus_px",
+    "solid_angle_source",
+    "nominal_pixel_sr",
+    "n_points",
+    "points"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "common.schema.json#/$defs/schema_version"
+    },
+    "slug": {
+      "$ref": "common.schema.json#/$defs/slug"
+    },
+    "data_version": {
+      "$ref": "common.schema.json#/$defs/data_version"
+    },
+    "flux_unit": {
+      "const": "mJy"
+    },
+    "wavelength_unit": {
+      "const": "um"
+    },
+    "aperture_radii_px": {
+      "const": [
+        3,
+        4,
+        5
+      ]
+    },
+    "primary_aperture_index": {
+      "const": 0
+    },
+    "annulus_px": {
+      "const": [
+        6,
+        10
+      ]
+    },
+    "solid_angle_source": {
+      "enum": [
+        "sapm",
+        "nominal_pixel"
+      ]
+    },
+    "nominal_pixel_sr": {
+      "const": 8.8897e-10
+    },
+    "n_points": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "points": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "frame_index",
+          "epoch_id",
+          "detector",
+          "channel",
+          "mjd",
+          "obs_time_utc",
+          "lambda_um",
+          "bandwidth_um",
+          "flux_mjy",
+          "flux_err_mjy",
+          "flagged",
+          "centroid_x",
+          "centroid_y",
+          "centroid_err_px"
+        ],
+        "properties": {
+          "frame_index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "epoch_id": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "detector": {
+            "$ref": "common.schema.json#/$defs/detector"
+          },
+          "channel": {
+            "$ref": "common.schema.json#/$defs/channel"
+          },
+          "mjd": {
+            "$ref": "common.schema.json#/$defs/mjd"
+          },
+          "obs_time_utc": {
+            "$ref": "common.schema.json#/$defs/iso_utc"
+          },
+          "lambda_um": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "bandwidth_um": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "flux_mjy": {
+            "$ref": "common.schema.json#/$defs/triple_nullable_number"
+          },
+          "flux_err_mjy": {
+            "$ref": "common.schema.json#/$defs/triple_nullable_number"
+          },
+          "flagged": {
+            "type": "boolean"
+          },
+          "centroid_x": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "centroid_y": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "centroid_err_px": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}

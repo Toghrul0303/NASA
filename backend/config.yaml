@@ -1,0 +1,193 @@
+version: 1
+
+paths:
+  data_dir: ../data
+  cache_dir: ../cache
+  channels_file: src/spherex_backend/resources/channels.json
+  schemas_dir: schemas/v1
+  contract_file: ../docs/DATA_CONTRACT.md
+  resolved_targets_file: config/targets.resolved.json
+
+server:
+  host: 0.0.0.0
+  port: 8000
+  workers: 1                      # MUST be 1
+  cors_allow_origins: []          # development example: ["http://localhost:5173"]
+  log_level: info
+
+jobs:
+  max_concurrent_jobs: 2
+  queue_capacity: 20
+  retry_after_s: 30
+  cache_ttl_hours: 24             # §C 11.3
+  event_retention_hours: 24       # MUST be >= cache_ttl_hours (§C 12.1)
+  tier2_data_retention_days: 7
+  job_timeout_s: 900
+  sse_keepalive_s: 15             # §C 12.1
+  sse_retry_ms: 3000              # §C 12.1
+  progress_max_hz: 4              # §C 12.3
+
+irsa:
+  tap_url: https://irsa.ipac.caltech.edu/TAP
+  tap_timeout_s: 120
+  tap_retries: 3
+  tap_backoff_s: 10               # TAP retry sleep = tap_backoff_s * k
+  tap_cache_ttl_s: 3600
+  releases: [dr1, qr3]
+  release_path_pattern: "/spherex/{release}/"
+  uri_prefix: "https://irsa.ipac.caltech.edu/"
+  cutout_query_template: "{uri}?center={ra:.7f},{dec:.7f}d&size={size:.4f}"
+  cutout_margin_deg: 0.005        # cutout size = size_deg + 2 * margin
+  max_concurrent_fetches: 6       # process-wide
+  fetch_retries: 3
+  fetch_backoff_s: 1              # fetch sleep = fetch_backoff_s * k + uniform(0, fetch_jitter_s)
+  fetch_jitter_s: 0.5
+  http:
+    connect_timeout_s: 5
+    read_timeout_s: 20
+    total_timeout_s: 40           # hard cap per download attempt (a slow trickle never trips the read timeout)
+    retry_after_cap_s: 5          # HTTP 429: sleep min(Retry-After, cap)
+  breaker:                        # per-group circuit breaker for dead IRSA weeks
+    enabled: true
+    group_regex: '/(?P<rel>dr1|qr3)/level2/(?P<week>\d{4}W\d{2}_\d[A-Z])/'
+    consecutive_failures: 5
+    window: 10
+    window_failures: 8
+    cooldown_s: 45                # 0 = no half-open probing during the run
+    persist_path: cache/breaker.json   # relative paths resolve against the parent of paths.cache_dir
+    persist_ttl_s: 1800
+  remote_timeout_s: 120
+  discovery_epoch_mjd: 61100.0    # epoch used to place the first discovery query
+  rediscovery_threshold_arcsec: 30
+
+grid:
+  pixel_scale_arcsec: 6.15        # contract constant
+  size_choices_deg: [0.05, 0.1, 0.2]   # contract constant
+  default_size_deg: 0.1
+
+processing:
+  epoch_gap_days: 30
+  contamination_severe_fraction: 0.25
+  reprojection: interp            # interp | exact
+  bad_flag_bits:                  # contract constant (§C 3.4)
+    TRANSIENT: 0
+    OVERFLOW: 1
+    SUR_ERROR: 2
+    PHANTOM: 4
+    REFERENCE: 5
+    NONFUNC: 6
+    DICHROIC: 7
+    MISSING_DATA: 9
+    HOT: 10
+    COLD: 11
+    FULLSAMPLE: 12
+    PHANMISS: 14
+    NONLINEAR: 15
+    PERSIST: 17
+    OUTLIER: 19
+  benign_flag_bits: { SOURCE: 21 }     # contract constant
+  bad_mask: 712439                     # contract constant; asserted equal to sum(2**bit)
+  aperture_radius_px: 3                # flag fractions, SNR, contamination
+  photometry_radii_px: [3, 4, 5]       # contract constant
+  annulus_px: [6, 10]                  # contract constant
+  background_clip_sigma: 3.0
+  background_clip_iters: 5
+  background_source_mask_radius_px: 5
+  centroid_window_radius_px: 3
+  centroid_mc_samples: 50
+  alignment_max_sources: 10
+  alignment_min_sources: 3
+  pm_fit_min_epochs: 3                 # contract constant
+  pm_fit_min_baseline_days: 300        # contract constant
+  float16_max: 65504                   # contract constant
+  pm_centroid_sigma_floor_px: 0.05
+
+photometry:
+  solid_angle: auto               # auto | nominal_pixel
+  nominal_pixel_sr: 8.8897e-10    # contract constant
+  sapm:
+    uri_template: null            # per-detector solid-angle pixel map location; null disables SAPM
+
+gaia:
+  endpoint: https://gea.esac.esa.int/tap-server/tap   # contract constant
+  table: gaiadr3.gaia_source                          # contract constant
+  static_radius_arcsec: 10
+  match_radius_arcsec: 10                             # contract constant
+  reference_epoch_year: 2016.0    # used for the cone-radius rule; sources carry their own ref_epoch
+  timeout_s: 60
+  retries: 3
+  cache_ttl_days: 7
+
+previews:
+  asinh_a: 10.0
+  lower_percentile: 1.0           # contract constant
+  upper_percentile: 99.5          # contract constant
+
+export:
+  validate: true                  # validate every produced file against schemas before publishing
+
+resolve:
+  max_separation_arcsec: 10
+
+sampling:                         # applied after discovery; 0 = unlimited
+  max_frames_per_target: 250
+  min_per_stratum: 2
+  prefer_cached: true
+  cache_only: false
+
+fetch_budget_s: null              # null = unlimited; wall-clock budget for network fetches of one run
+
+tier2_overrides:                  # deep-merged over the sections above for Tier 2 targets only
+  jobs: { job_timeout_s: 120 }
+  fetch_budget_s: 45
+  sampling: { max_frames_per_target: 150 }
+  irsa:
+    tap_timeout_s: 45
+    tap_retries: 2
+    http: { connect_timeout_s: 4, read_timeout_s: 10, total_timeout_s: 15 }
+    fetch_retries: 2
+    breaker: { cooldown_s: 0 }
+  gaia: { timeout_s: 10, retries: 2 }
+
+tier1_targets:
+  - slug: barnards-star
+    title: "Barnard's Star"
+    name: "Barnard's Star"
+    resolver_name: "Barnard's star"
+    size_deg: 0.1
+    position: { resolve: gaia, gaia_search_radius_arcsec: 300 }
+  - slug: wise-0855
+    title: "WISE 0855-0714"
+    name: "WISE 0855-0714"
+    size_deg: 0.1
+    position: { ra_deg: 133.795129, dec_deg: -7.245147, coord_epoch_year: null }  # RA 08h55m10.831s, Dec -07d14m42.53s; epoch unspecified
+    pm:
+      pmra_mas_yr: -8120.0
+      pmdec_mas_yr: 679.0
+      parallax_mas: 439.0
+      source: literature
+      reference: "WISE 0855-0714 literature astrometry"
+  - slug: eps-indi-b
+    title: "Epsilon Indi B"
+    name: "Epsilon Indi B"
+    resolver_name: "eps Ind B"
+    size_deg: 0.1
+    position: { resolve: gaia, gaia_search_radius_arcsec: 200 }
+  - slug: rw-aur
+    title: "RW Aurigae"
+    name: "RW Aurigae"
+    resolver_name: "RW Aur"
+    size_deg: 0.1
+    position: { resolve: gaia, gaia_search_radius_arcsec: 60 }
+  - slug: r-dra
+    title: "R Draconis"
+    name: "R Draconis"
+    resolver_name: "R Dra"
+    size_deg: 0.1
+    position: { resolve: gaia, gaia_search_radius_arcsec: 60 }
+
+tier1_5_targets:                  # coordinates transcribed from the IRSA tutorials; verified by `spherex targets verify`
+  - { slug: tutorial-m101,   title: "Tutorial field: M101",   ra_deg: 210.80227, dec_deg: 54.34895, size_deg: 0.1 }
+  - { slug: tutorial-cosmos, title: "Tutorial field: COSMOS", ra_deg: 150.7818,  dec_deg: 3.3502,   size_deg: 0.1 }
+  - { slug: tutorial-intro,  title: "Tutorial field: intro",  ra_deg: 304.6935,  dec_deg: 42.4437,  size_deg: 0.1 }
+  - { slug: tutorial-hips,   title: "Tutorial field: HiPS",   ra_deg: 60.81,     dec_deg: 51.34,    size_deg: 0.1 }

@@ -1,0 +1,276 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spherex-sky-explorer/schema/v1/coadds.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "slug",
+    "data_version",
+    "n_coadds",
+    "coadds",
+    "rgb_presets"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "common.schema.json#/$defs/schema_version"
+    },
+    "slug": {
+      "$ref": "common.schema.json#/$defs/slug"
+    },
+    "data_version": {
+      "$ref": "common.schema.json#/$defs/data_version"
+    },
+    "n_coadds": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "coadds": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/coadd"
+      }
+    },
+    "rgb_presets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "detector_rgb",
+        "equal_channel_rgb",
+        "feature_lines"
+      ],
+      "properties": {
+        "detector_rgb": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "blue",
+                "green",
+                "red",
+                "group_snr",
+                "min_group_snr"
+              ],
+              "properties": {
+                "blue": {
+                  "$ref": "#/$defs/detector_group"
+                },
+                "green": {
+                  "$ref": "#/$defs/detector_group"
+                },
+                "red": {
+                  "$ref": "#/$defs/detector_group"
+                },
+                "group_snr": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "blue",
+                    "green",
+                    "red"
+                  ],
+                  "properties": {
+                    "blue": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "green": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "red": {
+                      "type": "number",
+                      "minimum": 0
+                    }
+                  }
+                },
+                "min_group_snr": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            }
+          ]
+        },
+        "equal_channel_rgb": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "blue_channels",
+            "green_channels",
+            "red_channels"
+          ],
+          "properties": {
+            "blue_channels": {
+              "$ref": "#/$defs/channel_list"
+            },
+            "green_channels": {
+              "$ref": "#/$defs/channel_list"
+            },
+            "red_channels": {
+              "$ref": "#/$defs/channel_list"
+            }
+          }
+        },
+        "feature_lines": {
+          "type": "array",
+          "minItems": 8,
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "lambda_um",
+              "on_channel",
+              "continuum_channels"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "lambda_um": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "on_channel": {
+                "$ref": "common.schema.json#/$defs/channel"
+              },
+              "continuum_channels": {
+                "type": "array",
+                "items": {
+                  "$ref": "common.schema.json#/$defs/channel"
+                },
+                "minItems": 2,
+                "maxItems": 4,
+                "uniqueItems": true
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "detector_group": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/detector"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "channel_list": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/channel"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "coadd": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "index",
+        "scope",
+        "epoch_id",
+        "detector",
+        "channel",
+        "n_frames",
+        "frame_indices",
+        "mjd_min",
+        "mjd_max",
+        "mjd_mean",
+        "lambda_mean_um",
+        "lambda_min_um",
+        "lambda_max_um",
+        "snr_target"
+      ],
+      "properties": {
+        "index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "scope": {
+          "enum": [
+            "epoch_detector",
+            "detector",
+            "channel"
+          ]
+        },
+        "epoch_id": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "detector": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/detector"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "channel": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/channel"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "n_frames": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "frame_indices": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "mjd_min": {
+          "$ref": "common.schema.json#/$defs/mjd"
+        },
+        "mjd_max": {
+          "$ref": "common.schema.json#/$defs/mjd"
+        },
+        "mjd_mean": {
+          "$ref": "common.schema.json#/$defs/mjd"
+        },
+        "lambda_mean_um": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "lambda_min_um": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "lambda_max_um": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "snr_target": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

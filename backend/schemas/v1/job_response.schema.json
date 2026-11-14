@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spherex-sky-explorer/schema/v1/job_response.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "job_id",
+    "slug",
+    "status",
+    "cached",
+    "joined",
+    "created_utc",
+    "events_url",
+    "data_base_url",
+    "request"
+  ],
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "pattern": "^j_[0-9a-f]{16}$"
+    },
+    "slug": {
+      "$ref": "common.schema.json#/$defs/slug"
+    },
+    "status": {
+      "enum": [
+        "queued",
+        "running",
+        "complete"
+      ]
+    },
+    "cached": {
+      "type": "boolean"
+    },
+    "joined": {
+      "type": "boolean"
+    },
+    "created_utc": {
+      "$ref": "common.schema.json#/$defs/iso_utc"
+    },
+    "events_url": {
+      "type": "string"
+    },
+    "data_base_url": {
+      "type": "string"
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ra_deg",
+        "dec_deg",
+        "size_deg",
+        "name",
+        "pmra_mas_yr",
+        "pmdec_mas_yr",
+        "coord_epoch_year",
+        "coord_epoch_assumed",
+        "force_refresh"
+      ],
+      "properties": {
+        "ra_deg": {
+          "$ref": "common.schema.json#/$defs/ra_deg"
+        },
+        "dec_deg": {
+          "$ref": "common.schema.json#/$defs/dec_deg"
+        },
+        "size_deg": {
+          "$ref": "common.schema.json#/$defs/size_deg"
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "pmra_mas_yr": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "pmdec_mas_yr": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "coord_epoch_year": {
+          "type": "number"
+        },
+        "coord_epoch_assumed": {
+          "type": "boolean"
+        },
+        "force_refresh": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

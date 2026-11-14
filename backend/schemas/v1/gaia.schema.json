@@ -1,0 +1,308 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spherex-sky-explorer/schema/v1/gaia.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "slug",
+    "data_version",
+    "query_status",
+    "query",
+    "match_radius_arcsec",
+    "n_sources_in_cone",
+    "verdict",
+    "verdict_detail",
+    "primary_source_id",
+    "measured_pm",
+    "consistency",
+    "sources"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "common.schema.json#/$defs/schema_version"
+    },
+    "slug": {
+      "$ref": "common.schema.json#/$defs/slug"
+    },
+    "data_version": {
+      "$ref": "common.schema.json#/$defs/data_version"
+    },
+    "query_status": {
+      "enum": [
+        "ok",
+        "unavailable"
+      ]
+    },
+    "query": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "endpoint",
+        "table",
+        "center_ra_deg",
+        "center_dec_deg",
+        "radius_arcsec",
+        "executed_utc",
+        "adql"
+      ],
+      "properties": {
+        "endpoint": {
+          "const": "https://gea.esac.esa.int/tap-server/tap"
+        },
+        "table": {
+          "const": "gaiadr3.gaia_source"
+        },
+        "center_ra_deg": {
+          "$ref": "common.schema.json#/$defs/ra_deg"
+        },
+        "center_dec_deg": {
+          "$ref": "common.schema.json#/$defs/dec_deg"
+        },
+        "radius_arcsec": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "executed_utc": {
+          "$ref": "common.schema.json#/$defs/iso_utc"
+        },
+        "adql": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "match_radius_arcsec": {
+      "const": 10
+    },
+    "n_sources_in_cone": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "verdict": {
+      "enum": [
+        "match_consistent",
+        "match_inconsistent",
+        "no_counterpart",
+        "unavailable"
+      ]
+    },
+    "verdict_detail": {
+      "type": "string",
+      "maxLength": 400
+    },
+    "primary_source_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9]{1,19}$"
+    },
+    "measured_pm": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "pmra_mas_yr",
+            "pmdec_mas_yr",
+            "pmra_err_mas_yr",
+            "pmdec_err_mas_yr",
+            "n_frames_used",
+            "n_epochs_used",
+            "baseline_days",
+            "method"
+          ],
+          "properties": {
+            "pmra_mas_yr": {
+              "type": "number"
+            },
+            "pmdec_mas_yr": {
+              "type": "number"
+            },
+            "pmra_err_mas_yr": {
+              "type": "number",
+              "minimum": 0
+            },
+            "pmdec_err_mas_yr": {
+              "type": "number",
+              "minimum": 0
+            },
+            "n_frames_used": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "n_epochs_used": {
+              "type": "integer",
+              "minimum": 3
+            },
+            "baseline_days": {
+              "type": "number",
+              "minimum": 300
+            },
+            "method": {
+              "const": "weighted_linear_centroid"
+            }
+          }
+        }
+      ]
+    },
+    "consistency": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "delta_pmra_mas_yr",
+            "delta_pmdec_mas_yr",
+            "sigma_combined_mas_yr",
+            "within_3_sigma"
+          ],
+          "properties": {
+            "delta_pmra_mas_yr": {
+              "type": "number"
+            },
+            "delta_pmdec_mas_yr": {
+              "type": "number"
+            },
+            "sigma_combined_mas_yr": {
+              "type": "number",
+              "minimum": 0
+            },
+            "within_3_sigma": {
+              "type": "boolean"
+            }
+          }
+        }
+      ]
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/gaia_source"
+      }
+    }
+  },
+  "$defs": {
+    "gaia_source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "ra_deg",
+        "dec_deg",
+        "ref_epoch_year",
+        "pmra_mas_yr",
+        "pmdec_mas_yr",
+        "parallax_mas",
+        "parallax_error_mas",
+        "phot_g_mean_mag",
+        "separation_arcsec",
+        "is_primary",
+        "predicted_track"
+      ],
+      "properties": {
+        "source_id": {
+          "type": "string",
+          "pattern": "^[0-9]{1,19}$"
+        },
+        "ra_deg": {
+          "$ref": "common.schema.json#/$defs/ra_deg"
+        },
+        "dec_deg": {
+          "$ref": "common.schema.json#/$defs/dec_deg"
+        },
+        "ref_epoch_year": {
+          "type": "number"
+        },
+        "pmra_mas_yr": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "pmdec_mas_yr": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "parallax_mas": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "parallax_error_mas": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "phot_g_mean_mag": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "separation_arcsec": {
+          "type": "number",
+          "minimum": 0
+        },
+        "is_primary": {
+          "type": "boolean"
+        },
+        "predicted_track": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "epoch_id",
+                  "mjd",
+                  "ra_deg",
+                  "dec_deg",
+                  "x",
+                  "y"
+                ],
+                "properties": {
+                  "epoch_id": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "mjd": {
+                    "$ref": "common.schema.json#/$defs/mjd"
+                  },
+                  "ra_deg": {
+                    "$ref": "common.schema.json#/$defs/ra_deg"
+                  },
+                  "dec_deg": {
+                    "$ref": "common.schema.json#/$defs/dec_deg"
+                  },
+                  "x": {
+                    "type": "number"
+                  },
+                  "y": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

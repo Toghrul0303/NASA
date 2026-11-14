@@ -58,9 +58,9 @@ export function Tabs({
 
   return (
     <div className="ws-tabs-root">
-      <div className="ws-lab-bar">
+      <div className="flex items-center justify-between gap-2 px-3 py-2.5 border-b border-black/15 dark:border-white/10">
         <div
-          className="ws-tabs"
+          className="liquid-glass-bar inline-flex items-center gap-1 rounded-full p-1 overflow-x-auto max-w-full"
           role="tablist"
           aria-label={label}
           aria-orientation="horizontal"
@@ -81,6 +81,11 @@ export function Tabs({
                 aria-selected={isSelected}
                 aria-controls={`${prefix}-panel`}
                 tabIndex={index === activeIndex ? 0 : -1}
+                className={
+                  isSelected
+                    ? 'liquid-glass-btn-active rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap'
+                    : 'liquid-glass-btn rounded-full px-3 py-1 text-xs whitespace-nowrap'
+                }
                 onClick={() => onChange(tab.id)}
               >
                 {tab.label}

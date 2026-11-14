@@ -62,6 +62,7 @@ export function DetectorPicker({
     >
       {DETECTOR_LIST.map((detector, index) => {
         const isEnabled = enabledSet.has(detector)
+        const isSelected = detector === value
         const tipId = `${prefix}-tip-${detector}`
         return (
           <button
@@ -71,12 +72,12 @@ export function DetectorPicker({
             }}
             type="button"
             role="radio"
-            aria-checked={detector === value}
+            aria-checked={isSelected}
             aria-disabled={!isEnabled}
             aria-label={isEnabled ? `D${detector}` : `D${detector}, no frames`}
             aria-describedby={isEnabled ? undefined : tipId}
             tabIndex={index === tabOwner ? 0 : -1}
-            className="ws-det-btn"
+            className={`ws-det-btn ${isSelected ? 'liquid-glass-btn-active' : 'liquid-glass-btn'}`}
             onFocus={() => setFocusIndex(index)}
             onClick={() => {
               setFocusIndex(index)

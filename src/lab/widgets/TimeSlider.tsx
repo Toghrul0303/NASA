@@ -184,11 +184,23 @@ export function TimeSlider({
 
   return (
     <div className="ws-time">
-      <div className="ws-seg" role="radiogroup" aria-label="Tick spacing">
-        <button type="button" role="radio" aria-checked={spacing === 'frame'} onClick={() => onSpacing('frame')}>
+      <div className="ws-seg liquid-glass-bar" role="radiogroup" aria-label="Tick spacing">
+        <button
+          type="button"
+          role="radio"
+          aria-checked={spacing === 'frame'}
+          className={spacing === 'frame' ? 'liquid-glass-btn-active' : undefined}
+          onClick={() => onSpacing('frame')}
+        >
           By frame
         </button>
-        <button type="button" role="radio" aria-checked={spacing === 'time'} onClick={() => onSpacing('time')}>
+        <button
+          type="button"
+          role="radio"
+          aria-checked={spacing === 'time'}
+          className={spacing === 'time' ? 'liquid-glass-btn-active' : undefined}
+          onClick={() => onSpacing('time')}
+        >
           By time
         </button>
       </div>

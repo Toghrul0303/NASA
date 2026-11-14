@@ -26,12 +26,9 @@ export function writeStoredTheme(theme: ThemeName): void {
   }
 }
 
-/** Initial theme: stored choice, otherwise `prefers-color-scheme`, otherwise dark. */
+/** Initial theme: `'light'` only if explicitly stored as `'light'`, otherwise `'dark'`. */
 export function initialTheme(): ThemeName {
-  const stored = readStoredTheme()
-  if (stored) return stored
-  if (typeof matchMedia !== 'function') return 'dark'
-  return matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+  return readStoredTheme() === 'light' ? 'light' : 'dark'
 }
 
 export function applyTheme(theme: ThemeName): void {

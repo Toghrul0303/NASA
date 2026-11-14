@@ -26,7 +26,8 @@ export default {
         background: '#000000',
         foreground: '#ffffff',
         accent: {
-          DEFAULT: '#F0FF3C',
+          DEFAULT: 'rgb(var(--accent-lime) / <alpha-value>)',
+          lime: 'rgb(var(--accent-lime) / <alpha-value>)',
           pale: 'rgba(240, 255, 60, 0.14)',
           border: 'rgba(240, 255, 60, 0.28)',
         },

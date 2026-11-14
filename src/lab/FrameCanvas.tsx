@@ -680,7 +680,7 @@ export function FrameCanvas({
       <p className="ws-sr" aria-live="polite" aria-atomic="true">
         {caption}
       </p>
-      <div className="rounded-2xl bg-white dark:bg-[#0D0D12] border border-black/15 dark:border-white/10 px-3.5 py-2.5 flex flex-wrap items-center gap-2 sm:gap-3">
+      <div className="rounded-2xl bg-white dark:bg-[#0A0B10]/85 backdrop-blur-md border border-black/15 dark:border-white/12 px-3.5 py-2.5 flex flex-wrap items-center gap-2 sm:gap-3">
         <p className="ws-readout font-mono tabular-nums text-zinc-900 dark:text-white/90">
           <span className="ws-sr">Pixel readout</span>
           {readout ? (
@@ -707,7 +707,7 @@ export function FrameCanvas({
           )}
         </p>
         <span className="font-mono tabular-nums text-xs text-zinc-600 dark:text-[#A1A1AA]">{zoomLabel}</span>
-        <button type="button" className="ws-pill" onClick={savePng}>
+        <button type="button" className="liquid-glass-cta rounded-full px-3.5 py-1 text-xs font-medium" onClick={savePng}>
           Save PNG
         </button>
       </div>

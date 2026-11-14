@@ -26,8 +26,8 @@ const LAB_MIN = 30
 const LAB_MAX = 60
 const LAB_DEFAULT = 45
 
-/** Aladin's top row: projection, fullscreen, and the coordinate box. */
-const ALADIN_TOP_ROW = '.aladin-projection-control, .aladin-fullScreen-control, .aladin-location'
+/** Aladin's top row: projection, fullscreen, coordinate frame, and the coordinate box. */
+const ALADIN_TOP_ROW = '.aladin-projection-control, .aladin-fullScreen-control, .aladin-cooFrame, .aladin-location'
 
 function syncMapChrome(map: HTMLElement): void {
   const mapRect = map.getBoundingClientRect()
@@ -253,36 +253,41 @@ export function WorkspacePage() {
   return (
     <div className="ws-shell" data-lab={labOpen ? 'open' : 'closed'} style={shellStyle}>
       {embed ? null : (
-        <header className="h-12 flex-none bg-white/95 dark:bg-[#050505]/95 backdrop-blur-md border-b border-black/15 dark:border-white/10 px-4 flex items-center justify-between gap-3 text-zinc-950 dark:text-white">
-          <div className="flex items-center gap-3 min-w-0">
+        <header className="flex-none bg-white/90 dark:bg-black/75 backdrop-blur-xl border-b border-black/15 dark:border-white/[0.08] px-4 py-2 flex flex-wrap lg:grid lg:grid-cols-[1fr_auto_1fr] items-center justify-between gap-3 z-30 text-zinc-950 dark:text-white">
+          <div className="justify-self-start flex items-center gap-3 min-w-0">
             <a href="/" className="brand-mark shrink-0 !text-zinc-950 dark:!text-white" aria-label="ExoTrace home">
               <AsteriskIcon className="w-[18px] h-[18px]" />
               <span className="brand-mark__word">ExoTrace</span>
             </a>
             <span className="h-4 w-px bg-black/15 dark:bg-white/15 shrink-0" aria-hidden="true" />
             <h1
-              className="m-0 text-sm font-medium text-zinc-900 dark:text-white/90 truncate max-w-[220px] xl:max-w-[380px]"
+              className="m-0 text-xs sm:text-sm font-medium text-zinc-900 dark:text-white/85 truncate max-w-[180px] lg:max-w-[260px]"
               title={headerTitle}
             >
-              {datasetState.status === 'loading' ? <Skeleton className="h-4 w-40 rounded-full" /> : headerTitle}
+              {datasetState.status === 'loading' ? <Skeleton className="h-4 w-36 rounded-full" /> : headerTitle}
             </h1>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="justify-self-center liquid-glass-bar rounded-full px-2 py-1 flex items-center gap-1.5 max-w-full">
             {ready ? (
-              <div className="hidden md:flex items-center gap-2 rounded-full bg-black/[0.04] dark:bg-white/[0.04] border border-black/15 dark:border-white/10 px-2.5 py-1 text-xs">
-                <span className="text-zinc-700 dark:text-white/75 font-medium">{tierLabel(dataset.meta.tier)}</span>
+              <div className="hidden md:flex items-center gap-1.5">
+                <span className="text-[11px] font-medium text-zinc-800 dark:text-white/80 px-2.5 py-0.5 rounded-full bg-black/[0.04] dark:bg-white/[0.05] border border-black/15 dark:border-white/10 whitespace-nowrap">
+                  {tierLabel(dataset.meta.tier)}
+                </span>
                 <span
                   className={
                     dataset.meta.status === 'partial'
-                      ? 'rounded-full px-2 py-0.5 text-[11px] bg-amber-500/20 text-amber-900 dark:bg-amber-500/15 dark:text-amber-300 border border-amber-600/40 dark:border-amber-400/35'
-                      : 'rounded-full px-2 py-0.5 text-[11px] bg-emerald-500/15 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-300 border border-emerald-600/30 dark:border-emerald-500/25'
+                      ? 'rounded-full px-2.5 py-0.5 text-[11px] bg-amber-500/15 text-amber-900 dark:text-amber-300 border border-amber-600/40 dark:border-amber-400/40 whitespace-nowrap'
+                      : 'rounded-full px-2.5 py-0.5 text-[11px] bg-emerald-500/15 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-300 border border-emerald-600/30 dark:border-emerald-500/25 inline-flex items-center gap-1.5 whitespace-nowrap'
                   }
                 >
+                  {dataset.meta.status === 'complete' ? (
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" aria-hidden="true" />
+                  ) : null}
                   {dataset.meta.status}
                 </span>
                 <span
-                  className="font-mono tabular-nums text-[11px] text-zinc-600 dark:text-white/60 bg-black/[0.05] dark:bg-white/[0.05] rounded-full px-2 py-0.5"
+                  className="font-mono tabular-nums text-[11px] text-zinc-700 dark:text-white/65 px-2.5 py-0.5 rounded-full bg-black/[0.04] dark:bg-white/[0.04] border border-black/15 dark:border-white/10 whitespace-nowrap"
                   title={dataset.meta.data_version}
                 >
                   <span className="ws-sr">Data version</span>
@@ -294,18 +299,18 @@ export function WorkspacePage() {
             <label className="relative inline-flex items-center">
               <span className="ws-sr">Target</span>
               <select
-                className="appearance-none rounded-full bg-white dark:bg-[#0D0D12] border border-black/20 dark:border-white/15 hover:border-[#E4F222]/60 focus:border-[#E4F222] text-zinc-900 dark:text-white text-xs pl-3.5 pr-8 py-1.5 max-w-[230px] truncate transition-colors cursor-pointer"
+                className="liquid-glass-btn appearance-none rounded-full text-xs pl-3 pr-7 py-1 max-w-[210px] truncate text-zinc-900 dark:text-white/90 focus:border-[rgb(240,255,60)]"
                 value={datasetState.slug ?? ''}
                 onChange={(event) => {
                   const slug = event.target.value
                   if (slug) void loadDataset(slug)
                 }}
               >
-                <option value="" className="bg-white text-zinc-900 dark:bg-[#0D0D12] dark:text-white">
+                <option value="" className="bg-white text-zinc-900 dark:bg-[#0B0C10] dark:text-white">
                   Pick a target
                 </option>
                 {tier1.length > 0 ? (
-                  <optgroup label="Tier 1" className="bg-white text-zinc-900 dark:bg-[#0D0D12] dark:text-white">
+                  <optgroup label="Tier 1" className="bg-white text-zinc-900 dark:bg-[#0B0C10] dark:text-white">
                     {tier1.map((entry) => (
                       <option
                         key={entry.slug}
@@ -313,8 +318,8 @@ export function WorkspacePage() {
                         disabled={!entry.available}
                         className={
                           entry.available
-                            ? 'bg-white text-zinc-900 dark:bg-[#0D0D12] dark:text-white'
-                            : 'bg-white text-zinc-400 dark:bg-[#0D0D12] dark:text-white/35'
+                            ? 'bg-white text-zinc-900 dark:bg-[#0B0C10] dark:text-white'
+                            : 'bg-white text-zinc-400 dark:bg-[#0B0C10] dark:text-white/35'
                         }
                       >
                         {entry.title ?? entry.slug}
@@ -323,7 +328,7 @@ export function WorkspacePage() {
                   </optgroup>
                 ) : null}
                 {tier15.length > 0 ? (
-                  <optgroup label="Tier 1.5" className="bg-white text-zinc-900 dark:bg-[#0D0D12] dark:text-white">
+                  <optgroup label="Tier 1.5" className="bg-white text-zinc-900 dark:bg-[#0B0C10] dark:text-white">
                     {tier15.map((entry) => (
                       <option
                         key={entry.slug}
@@ -331,8 +336,8 @@ export function WorkspacePage() {
                         disabled={!entry.available}
                         className={
                           entry.available
-                            ? 'bg-white text-zinc-900 dark:bg-[#0D0D12] dark:text-white'
-                            : 'bg-white text-zinc-400 dark:bg-[#0D0D12] dark:text-white/35'
+                            ? 'bg-white text-zinc-900 dark:bg-[#0B0C10] dark:text-white'
+                            : 'bg-white text-zinc-400 dark:bg-[#0B0C10] dark:text-white/35'
                         }
                       >
                         {entry.title ?? entry.slug}
@@ -346,7 +351,7 @@ export function WorkspacePage() {
 
             <button
               type="button"
-              className="rounded-full bg-black/[0.04] dark:bg-white/[0.04] border border-black/20 dark:border-white/[0.12] hover:border-black/40 dark:hover:border-white/30 text-zinc-800 dark:text-white/80 hover:text-black dark:hover:text-white text-xs px-3 py-1.5 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+              className="liquid-glass-btn px-2.5 py-1 text-xs gap-1.5"
               aria-pressed={theme === 'dark'}
               aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -354,11 +359,13 @@ export function WorkspacePage() {
               {theme === 'dark' ? <SunIcon className="w-3.5 h-3.5" /> : <MoonIcon className="w-3.5 h-3.5" />}
               <span className="hidden sm:inline">{theme === 'dark' ? 'Light' : 'Dark'}</span>
             </button>
+          </div>
 
+          <div className="justify-self-end flex items-center gap-2">
             {ready ? (
               <button
                 type="button"
-                className="hidden lg:inline-flex items-center gap-1.5 rounded-full bg-zinc-900 dark:bg-[#0A0A0D] border border-[#E4F222]/70 text-[#E4F222] hover:bg-[#E4F222] hover:text-black font-medium text-xs px-3.5 py-1.5 transition-colors cursor-pointer"
+                className="hidden lg:inline-flex liquid-glass-cta rounded-full px-3.5 py-1.5 text-xs font-medium items-center gap-1.5"
                 aria-expanded={tool !== 'map'}
                 onClick={toggleLab}
               >
@@ -390,7 +397,7 @@ export function WorkspacePage() {
           {embed && ready && tool === 'map' ? (
             <button
               type="button"
-              className="ws-open-lab rounded-full bg-[#0A0A0D] border border-[#E4F222]/70 text-[#E4F222] hover:bg-[#E4F222] hover:text-black font-medium text-xs px-3.5 py-1.5 transition-colors"
+              className="ws-open-lab liquid-glass-cta rounded-full px-3.5 py-1.5 text-xs font-medium"
               onClick={toggleLab}
             >
               Open Lab
@@ -398,13 +405,18 @@ export function WorkspacePage() {
           ) : null}
         </div>
         {datasetState.status === 'ready' ? (
-          <button type="button" className="ws-pill ws-lab-toggle" aria-expanded={tool !== 'map'} onClick={toggleLab}>
+          <button
+            type="button"
+            className="ws-lab-toggle liquid-glass-cta !rounded-none text-xs font-medium"
+            aria-expanded={tool !== 'map'}
+            onClick={toggleLab}
+          >
             {tool === 'map' ? 'Open Lab' : 'Close Lab'}
           </button>
         ) : null}
         {/* eslint-disable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex */}
         <div
-          className="ws-separator group w-1.5 bg-transparent hover:bg-[#E4F222]/40 focus-visible:bg-[#E4F222]/60 transition-colors cursor-col-resize items-center justify-center"
+          className="ws-separator group w-1.5 bg-transparent hover:bg-[rgba(240,255,60,0.4)] focus-visible:bg-[rgba(240,255,60,0.6)] transition-colors cursor-col-resize items-center justify-center"
           role="separator"
           aria-orientation="vertical"
           aria-label="Resize laboratory panel"

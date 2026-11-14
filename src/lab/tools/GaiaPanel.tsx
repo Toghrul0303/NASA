@@ -330,7 +330,7 @@ function GaiaPanelView({
                       </button>
                       <button
                         type="button"
-                        className="ws-pill ws-gaia-copy"
+                        className="ws-pill liquid-glass-btn ws-gaia-copy"
                         aria-label={`${gaiaCopy.copy} ${source.source_id}`}
                         onClick={() => {
                           copyText(source.source_id)
@@ -366,7 +366,7 @@ function GaiaPanelView({
             <pre className="ws-adql">{gaia.query.adql}</pre>
             <button
               type="button"
-              className="ws-pill"
+              className="ws-pill liquid-glass-btn"
               onClick={() => {
                 copyText(gaia.query.adql)
               }}
@@ -379,7 +379,7 @@ function GaiaPanelView({
 
       {unavailable ? null : (
         <span className="ws-tip-anchor">
-          <button type="button" className="ws-pill" disabled title={gaiaCopy.rerunDisabledTooltip}>
+          <button type="button" className="ws-pill liquid-glass-btn" disabled title={gaiaCopy.rerunDisabledTooltip}>
             {gaiaCopy.rerunWithProperMotion}
           </button>
           <span className="ws-tip" role="tooltip">

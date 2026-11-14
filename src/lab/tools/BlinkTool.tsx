@@ -387,11 +387,12 @@ function BlinkReady({ dataset }: { dataset: Dataset }) {
     // Shortcuts apply wherever focus sits in the tool, so this is a scope rather than a widget.
     // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div className="ws-blink" onKeyDown={onToolKeyDown}>
-      <div className="ws-seg" role="radiogroup" aria-label="Blink mode">
+      <div className="ws-seg liquid-glass-bar" role="radiogroup" aria-label="Blink mode">
         <button
           type="button"
           role="radio"
           aria-checked={mode === 'frames'}
+          className={mode === 'frames' ? 'liquid-glass-btn-active' : undefined}
           onClick={() => setBlink({ mode: 'frames', itemIndex: 0 })}
         >
           Frames
@@ -400,6 +401,7 @@ function BlinkReady({ dataset }: { dataset: Dataset }) {
           type="button"
           role="radio"
           aria-checked={mode === 'epochs'}
+          className={mode === 'epochs' ? 'liquid-glass-btn-active' : undefined}
           onClick={() => setBlink({ mode: 'epochs', itemIndex: 0 })}
         >
           Epochs
@@ -417,31 +419,34 @@ function BlinkReady({ dataset }: { dataset: Dataset }) {
         />
       ) : null}
       <div className="ws-blink-controls" role="group" aria-label="Overlays">
-        {OVERLAYS.map((entry) => (
-          <button
-            key={entry.key}
-            type="button"
-            className="ws-pill"
-            aria-pressed={show[entry.key]}
-            onClick={() => setBlink({ overlays: { [entry.key]: !show[entry.key] } })}
-          >
-            {entry.label}
-          </button>
-        ))}
+        {OVERLAYS.map((entry) => {
+          const active = show[entry.key]
+          return (
+            <button
+              key={entry.key}
+              type="button"
+              className={`${active ? 'liquid-glass-btn-active' : 'liquid-glass-btn'} px-3 py-1 text-xs`}
+              aria-pressed={active}
+              onClick={() => setBlink({ overlays: { [entry.key]: !active } })}
+            >
+              {entry.label}
+            </button>
+          )
+        })}
       </div>
       <div className="ws-blink-controls">
         <button
           type="button"
-          className="ws-pill ws-pill--primary"
+          className="liquid-glass-cta px-3.5 py-1 text-xs font-medium"
           aria-pressed={blink.playing}
           onClick={() => setBlink({ playing: !blink.playing })}
         >
           {blink.playing ? 'Pause' : 'Play'}
         </button>
-        <button type="button" className="ws-pill" aria-label="Previous item" onClick={() => stepBlink(-1)}>
+        <button type="button" className="liquid-glass-btn px-3 py-1 text-xs" aria-label="Previous item" onClick={() => stepBlink(-1)}>
           Previous
         </button>
-        <button type="button" className="ws-pill" aria-label="Next item" onClick={() => stepBlink(1)}>
+        <button type="button" className="liquid-glass-btn px-3 py-1 text-xs" aria-label="Next item" onClick={() => stepBlink(1)}>
           Next
         </button>
         <label className="ws-range-label">
@@ -464,18 +469,23 @@ function BlinkReady({ dataset }: { dataset: Dataset }) {
             }}
           />
         </label>
-        <button type="button" className="ws-pill" aria-pressed={blink.loop} onClick={() => setBlink({ loop: !blink.loop })}>
+        <button
+          type="button"
+          className={`${blink.loop ? 'liquid-glass-btn-active' : 'liquid-glass-btn'} px-3 py-1 text-xs`}
+          aria-pressed={blink.loop}
+          onClick={() => setBlink({ loop: !blink.loop })}
+        >
           Loop
         </button>
       </div>
       {count === 0 || !plane || !sigma || !limits ? (
-        <div className="ws-state" role="status">
+        <div className="ws-state rounded-2xl bg-white dark:bg-[#0A0B10]/85 backdrop-blur-md border border-black/15 dark:border-white/12 p-4" role="status">
           <p>No frames in this window</p>
           <div className="ws-blink-actions">
-            <button type="button" className="ws-pill ws-pill--primary" onClick={widen}>
+            <button type="button" className="liquid-glass-cta px-3.5 py-1.5 text-xs font-medium" onClick={widen}>
               Widen the window
             </button>
-            <button type="button" className="ws-pill" onClick={changeDetector}>
+            <button type="button" className="liquid-glass-btn px-3.5 py-1.5 text-xs" onClick={changeDetector}>
               Change detector
             </button>
           </div>

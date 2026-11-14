@@ -42,6 +42,81 @@ export interface AladinMapProps {
 
 const DEFAULT_VIEW: MapView = { ra: 0, dec: 0, fov: 0.5 }
 
+const ALADIN_HUD_SELECTOR = [
+  '.aladin-btn',
+  '.aladin-location',
+  '.aladin-location-copy',
+  '.aladin-projection-control',
+  '.aladin-proj-control',
+  '.aladin-fullScreen-control',
+  '.aladin-grid-control',
+  '.aladin-cooFrame',
+  '.aladin-fov',
+  '.aladin-zoom-control',
+  '.aladin-box',
+  '.aladin-context-menu',
+  '.aladin-context-sub-menu',
+  '.aladin-tooltip',
+  '[title*="coordinate" i]',
+  '[title*="projection" i]',
+  'button',
+  '[role="button"]',
+  'select',
+].join(', ')
+
+const SHADOW_GLASS_CSS = `
+  button, [role="button"], select, .aladin-btn, .aladin-location, .aladin-projection-control, .aladin-fov {
+    background: rgba(12, 14, 20, 0.52) !important;
+    backdrop-filter: blur(18px) saturate(160%) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(160%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
+    border-radius: 9999px !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+  }
+  button:hover, [role="button"]:hover, .aladin-btn:hover {
+    border-color: rgba(240, 255, 60, 0.72) !important;
+    color: rgb(240, 255, 60) !important;
+  }
+`
+
+let shadowGlassSheet: CSSStyleSheet | null = null
+
+function getShadowGlassSheet(): CSSStyleSheet | null {
+  if (typeof CSSStyleSheet === 'undefined') return null
+  if (shadowGlassSheet) return shadowGlassSheet
+  try {
+    const sheet = new CSSStyleSheet()
+    sheet.replaceSync(SHADOW_GLASS_CSS)
+    shadowGlassSheet = sheet
+    return sheet
+  } catch {
+    return null
+  }
+}
+
+function enhanceAladinHud(root: ParentNode): void {
+  const adopt = (node: Element) => {
+    const shadow = node.shadowRoot
+    if (shadow) {
+      const sheet = getShadowGlassSheet()
+      if (sheet && !shadow.adoptedStyleSheets.includes(sheet)) {
+        shadow.adoptedStyleSheets = [...shadow.adoptedStyleSheets, sheet]
+      }
+      enhanceAladinHud(shadow)
+    }
+  }
+  if (root instanceof Element && root.matches(ALADIN_HUD_SELECTOR)) {
+    root.classList.add('exotrace-aladin-glass')
+  }
+  for (const el of root.querySelectorAll(ALADIN_HUD_SELECTOR)) {
+    if (!el.classList.contains('exotrace-aladin-glass')) el.classList.add('exotrace-aladin-glass')
+    adopt(el)
+  }
+  for (const el of root.querySelectorAll('*')) {
+    if (el.shadowRoot) adopt(el)
+  }
+}
+
 function sameView(a: MapView, b: MapView): boolean {
   return Math.abs(a.ra - b.ra) < 1e-6 && Math.abs(a.dec - b.dec) < 1e-6 && Math.abs(a.fov - b.fov) < 1e-6
 }
@@ -110,6 +185,27 @@ export function AladinMap({
     observer.observe(frame)
     return () => observer.disconnect()
   }, [])
+
+  useEffect(() => {
+    const el = hostRef.current
+    if (!el) return undefined
+    let frame = 0
+    const apply = () => {
+      frame = 0
+      enhanceAladinHud(el)
+    }
+    const schedule = () => {
+      if (frame !== 0) return
+      frame = requestAnimationFrame(apply)
+    }
+    enhanceAladinHud(el)
+    const observer = new MutationObserver(schedule)
+    observer.observe(el, { childList: true, subtree: true })
+    return () => {
+      if (frame !== 0) cancelAnimationFrame(frame)
+      observer.disconnect()
+    }
+  }, [status])
 
   useEffect(() => {
     const el = hostRef.current
@@ -222,12 +318,12 @@ export function AladinMap({
       {status === 'ready' && surveyUnavailable ? (
         <div
           role="status"
-          className="pointer-events-auto absolute left-1/2 top-3 z-20 w-[min(100%-1.5rem,36rem)] -translate-x-1/2 rounded-lg border border-border bg-black/85 px-3 py-2 text-sm text-white"
+          className="liquid-glass-bar pointer-events-auto absolute left-1/2 top-3 z-20 w-[min(100%-1.5rem,36rem)] -translate-x-1/2 rounded-2xl px-4 py-3 text-sm text-white"
         >
           <p>Base sky survey unavailable. Positions and overlays still work.</p>
           <button
             type="button"
-            className="mt-2 rounded-full bg-accent px-3 py-1 text-sm font-medium text-black disabled:opacity-60"
+            className="liquid-glass-cta mt-2 px-3.5 py-1 text-xs font-medium disabled:opacity-60"
             disabled={surveyRetrying}
             onClick={() => {
               const adapter = adapterRef.current
@@ -369,7 +465,7 @@ function CoordinateFallback({
               {mapCopy.invalidCoordinates}
             </p>
           ) : null}
-          <button type="submit" className="rounded-full bg-accent px-4 py-2 text-sm font-medium text-black">
+          <button type="submit" className="liquid-glass-cta px-4 py-2 text-sm font-medium">
             {mapCopy.apply}
           </button>
         </div>
@@ -430,7 +526,7 @@ function CubeControl({
 
   return (
     <section
-      className="absolute bottom-3 left-3 z-10 w-[min(100%-1.5rem,22rem)] rounded-lg border border-border bg-black/85 p-3 text-sm text-white"
+      className="liquid-glass-bar absolute bottom-3 left-3 z-10 w-[min(100%-1.5rem,22rem)] rounded-2xl p-3 text-sm text-white"
       aria-label={mapCopy.cubeToggle}
     >
       <div className="flex items-start justify-between gap-3">

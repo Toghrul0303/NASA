@@ -51,7 +51,7 @@ function DatasetState({ onRetry }: { onRetry: () => void }) {
   if (status === 'loading') {
     return (
       <div
-        className="rounded-2xl bg-white dark:bg-[#0D0D12] border border-black/15 dark:border-white/10 p-4 space-y-3"
+        className="rounded-2xl bg-white dark:bg-[#0A0B10]/85 backdrop-blur-md border border-black/15 dark:border-white/12 p-4 space-y-3"
         role="status"
         aria-label="Loading dataset"
       >
@@ -71,13 +71,13 @@ function DatasetState({ onRetry }: { onRetry: () => void }) {
   if (status === 'error') {
     return (
       <div
-        className="rounded-2xl bg-red-500/10 border border-red-500/30 dark:border-red-500/25 p-5 text-red-900 dark:text-red-200 space-y-3"
+        className="rounded-2xl bg-red-500/10 backdrop-blur-md border border-red-500/30 dark:border-red-500/25 p-5 text-red-900 dark:text-red-200 space-y-3"
         role="alert"
       >
         <p className="m-0 text-sm">{datasetErrorMessage(errorCode ?? 'invalid')}</p>
         <button
           type="button"
-          className="rounded-full bg-zinc-900 dark:bg-transparent border border-[#E4F222]/70 text-[#E4F222] hover:bg-[#E4F222] hover:text-black px-4 py-1.5 text-xs font-medium transition-colors"
+          className="liquid-glass-cta rounded-full px-4 py-1.5 text-xs font-medium"
           onClick={onRetry}
         >
           Retry
@@ -88,7 +88,7 @@ function DatasetState({ onRetry }: { onRetry: () => void }) {
 
   if (status !== 'ready' || tool === 'map') {
     return (
-      <div className="rounded-2xl bg-white dark:bg-[#0D0D12] border border-black/15 dark:border-white/10 p-4">
+      <div className="rounded-2xl bg-white dark:bg-[#0A0B10]/85 backdrop-blur-md border border-black/15 dark:border-white/12 p-4">
         <p className="m-0 text-sm text-zinc-600 dark:text-[#A1A1AA]">Pick a target</p>
       </div>
     )
@@ -99,7 +99,7 @@ function DatasetState({ onRetry }: { onRetry: () => void }) {
       <Suspense
         fallback={
           <div
-            className="rounded-2xl bg-white dark:bg-[#0D0D12] border border-black/15 dark:border-white/10 p-4 text-sm text-zinc-600 dark:text-[#A1A1AA]"
+            className="rounded-2xl bg-white dark:bg-[#0A0B10]/85 backdrop-blur-md border border-black/15 dark:border-white/12 p-4 text-sm text-zinc-600 dark:text-[#A1A1AA]"
             role="status"
           >
             Loading blink
@@ -116,7 +116,7 @@ function DatasetState({ onRetry }: { onRetry: () => void }) {
       <Suspense
         fallback={
           <div
-            className="rounded-2xl bg-white dark:bg-[#0D0D12] border border-black/15 dark:border-white/10 p-4 text-sm text-zinc-600 dark:text-[#A1A1AA]"
+            className="rounded-2xl bg-white dark:bg-[#0A0B10]/85 backdrop-blur-md border border-black/15 dark:border-white/12 p-4 text-sm text-zinc-600 dark:text-[#A1A1AA]"
             role="status"
           >
             {gaiaCopy.loading}
@@ -130,7 +130,7 @@ function DatasetState({ onRetry }: { onRetry: () => void }) {
 
   const active = toolById(tool)
   return (
-    <article className="rounded-2xl bg-white dark:bg-[#0D0D12] border border-black/15 dark:border-white/10 p-4">
+    <article className="rounded-2xl bg-white dark:bg-[#0A0B10]/85 backdrop-blur-md border border-black/15 dark:border-white/12 p-4">
       <h2 className="m-0 mb-2 text-base font-medium text-zinc-950 dark:text-white">{active.label}</h2>
       <p className="m-0 text-sm text-zinc-600 dark:text-[#A1A1AA]">Coming in a later step</p>
     </article>
@@ -160,7 +160,7 @@ export function Lab() {
           status === 'ready' ? (
             <button
               type="button"
-              className="rounded-full w-7 h-7 shrink-0 flex items-center justify-center border border-black/15 dark:border-white/10 text-zinc-600 dark:text-white/60 hover:text-black dark:hover:text-white hover:border-black/35 dark:hover:border-white/30 transition-colors"
+              className="liquid-glass-btn w-7 h-7 rounded-full shrink-0 flex items-center justify-center"
               aria-label="Close lab"
               onClick={() => setTool('map')}
             >

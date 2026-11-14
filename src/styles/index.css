@@ -4,14 +4,15 @@
 
 :root {
   color-scheme: dark;
+  --accent-lime: 240 255 60;
   --background: #000000;
   --foreground: #ffffff;
-  --accent: rgb(240, 255, 60);
+  --accent: rgb(var(--accent-lime));
   --accent-pale: rgba(240, 255, 60, 0.14);
   --accent-border: rgba(240, 255, 60, 0.28);
   --container-max: 1480px;
   --container-gutter: clamp(12px, 4vw, 64px);
-  --primary: rgb(240, 255, 60);
+  --primary: rgb(var(--accent-lime));
   --primary-foreground: #000000;
   --secondary: rgba(255, 255, 255, 0.1);
   --secondary-foreground: #ffffff;
@@ -43,13 +44,13 @@
   --ws-bg: #000000;
   --ws-surface: #08080c;
   --ws-card: #0d0d12;
-  --ws-pill-bg: #0f1016;
+  --ws-pill-bg: rgba(255, 255, 255, 0.05);
   --ws-fg: #ffffff;
   --ws-fg-muted: #a1a1aa;
-  --ws-border: rgba(255, 255, 255, 0.1);
+  --ws-border: rgba(255, 255, 255, 0.14);
   --ws-muted: rgba(255, 255, 255, 0.06);
-  --ws-primary: #e4f222;
-  --ws-primary-hover: #ecf84b;
+  --ws-primary: rgb(var(--accent-lime));
+  --ws-primary-hover: rgb(var(--accent-lime));
   --ws-primary-fg: #000000;
 }
 
@@ -63,8 +64,8 @@ html.light {
   --ws-fg-muted: #52525b;
   --ws-border: rgba(9, 9, 11, 0.2);
   --ws-muted: rgba(9, 9, 11, 0.06);
-  --ws-primary: #e4f222;
-  --ws-primary-hover: #ecf84b;
+  --ws-primary: rgb(var(--accent-lime));
+  --ws-primary-hover: rgb(var(--accent-lime));
   --ws-primary-fg: #000000;
 }
 
@@ -832,6 +833,121 @@ html.light {
   }
 }
 
+.liquid-glass-bar {
+  background: linear-gradient(180deg, rgba(22, 24, 32, 0.62) 0%, rgba(10, 11, 16, 0.54) 100%);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.22), 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+html.light .liquid-glass-bar {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(241, 245, 249, 0.82) 100%);
+  border: 1px solid rgba(9, 9, 11, 0.18);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.9), 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.liquid-glass-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.88);
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+.liquid-glass-btn:hover:not(:disabled):not([aria-disabled='true']),
+.liquid-glass-btn:focus-visible:not(:disabled):not([aria-disabled='true']) {
+  border-color: rgba(240, 255, 60, 0.65);
+  color: rgb(240, 255, 60);
+  box-shadow: inset 0 1px 0 0 rgba(240, 255, 60, 0.25), 0 0 16px rgba(240, 255, 60, 0.14);
+}
+
+.liquid-glass-btn:disabled,
+.liquid-glass-btn[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+html.light .liquid-glass-btn {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(9, 9, 11, 0.18);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
+  color: #18181b;
+}
+
+html.light .liquid-glass-btn:hover:not(:disabled):not([aria-disabled='true']),
+html.light .liquid-glass-btn:focus-visible:not(:disabled):not([aria-disabled='true']) {
+  border-color: #18181b;
+  background: rgb(240, 255, 60);
+  color: #000000;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.liquid-glass-btn-active {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: rgba(240, 255, 60, 0.14);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  border: 1px solid rgba(240, 255, 60, 0.78);
+  color: rgb(240, 255, 60);
+  box-shadow: inset 0 1px 0 0 rgba(240, 255, 60, 0.35), 0 0 18px rgba(240, 255, 60, 0.16);
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+html.light .liquid-glass-btn-active {
+  background: rgb(240, 255, 60);
+  border: 1px solid #18181b;
+  color: #000000;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.55);
+}
+
+.liquid-glass-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: rgba(14, 16, 12, 0.68);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(240, 255, 60, 0.75);
+  color: rgb(240, 255, 60);
+  box-shadow: inset 0 1px 0 0 rgba(240, 255, 60, 0.30);
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+.liquid-glass-cta:hover:not(:disabled),
+.liquid-glass-cta:focus-visible:not(:disabled) {
+  background: rgb(240, 255, 60);
+  border-color: rgb(240, 255, 60);
+  color: #000000;
+  box-shadow: 0 0 20px rgba(240, 255, 60, 0.25);
+}
+
+html.light .liquid-glass-cta {
+  background: #18181b;
+  border: 1px solid #18181b;
+  color: rgb(240, 255, 60);
+}
+
+html.light .liquid-glass-cta:hover:not(:disabled),
+html.light .liquid-glass-cta:focus-visible:not(:disabled) {
+  background: rgb(240, 255, 60);
+  border-color: #18181b;
+  color: #000000;
+}
+
 .ws-shell {
   display: flex;
   height: 100svh;
@@ -888,9 +1004,10 @@ html.light {
   display: inline-flex;
   align-items: center;
   height: 24px;
-  padding: 0 8px;
+  padding: 0 10px;
   border: 1px solid var(--ws-border);
   border-radius: 999px;
+  background: var(--ws-pill-bg);
   color: var(--ws-fg);
   font-size: 11px;
   line-height: 1;
@@ -898,21 +1015,30 @@ html.light {
 }
 
 .ws-chip--partial {
-  border-color: transparent;
-  background: var(--contamination-amber);
-  color: #000;
+  border-color: rgba(245, 165, 36, 0.45);
+  background: rgba(245, 165, 36, 0.16);
+  color: #fbbf24;
+}
+
+html.light .ws-chip--partial {
+  border-color: rgba(180, 83, 9, 0.4);
+  background: rgba(245, 165, 36, 0.25);
+  color: #78350f;
 }
 
 .ws-pill,
 .ws-select {
   min-height: 32px;
-  border: 1px solid var(--ws-border);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 999px;
-  background: var(--ws-pill-bg);
-  color: var(--ws-fg);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.88);
   font: inherit;
   font-size: 12px;
-  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
 }
 
 .ws-pill {
@@ -923,24 +1049,52 @@ html.light {
   cursor: pointer;
 }
 
-.ws-pill:hover:not(:disabled) {
-  border-color: rgba(255, 255, 255, 0.28);
+.ws-pill:hover:not(:disabled):not([aria-disabled='true']),
+.ws-pill:focus-visible:not(:disabled):not([aria-disabled='true']) {
+  border-color: rgba(240, 255, 60, 0.65);
+  color: rgb(240, 255, 60);
+  box-shadow: inset 0 1px 0 0 rgba(240, 255, 60, 0.25), 0 0 16px rgba(240, 255, 60, 0.14);
 }
 
-html.light .ws-pill:hover:not(:disabled) {
-  border-color: rgba(9, 9, 11, 0.4);
+html.light .ws-pill,
+html.light .ws-select {
+  border-color: rgba(9, 9, 11, 0.18);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
+  color: #18181b;
+}
+
+html.light .ws-pill:hover:not(:disabled):not([aria-disabled='true']) {
+  border-color: #18181b;
+  background: rgb(240, 255, 60);
+  color: #000000;
 }
 
 .ws-pill--primary {
-  border-color: transparent;
-  background: var(--ws-primary);
-  color: var(--ws-primary-fg);
+  border-color: rgba(240, 255, 60, 0.75);
+  background: rgba(14, 16, 12, 0.68);
+  color: rgb(240, 255, 60);
+  box-shadow: inset 0 1px 0 0 rgba(240, 255, 60, 0.30);
   font-weight: 500;
 }
 
 .ws-pill--primary:hover:not(:disabled) {
-  border-color: transparent;
-  background: var(--ws-primary-hover);
+  border-color: rgb(240, 255, 60);
+  background: rgb(240, 255, 60);
+  color: #000000;
+  box-shadow: 0 0 20px rgba(240, 255, 60, 0.25);
+}
+
+html.light .ws-pill--primary {
+  border-color: #18181b;
+  background: #18181b;
+  color: rgb(240, 255, 60);
+}
+
+html.light .ws-pill--primary:hover:not(:disabled) {
+  border-color: #18181b;
+  background: rgb(240, 255, 60);
+  color: #000000;
 }
 
 .ws-select {
@@ -1302,31 +1456,30 @@ html.light .ws-pill:hover:not(:disabled) {
   gap: 2px;
   width: fit-content;
   padding: 3px;
-  border: 1px solid var(--ws-border);
-  border-radius: 999px;
-  background: var(--ws-pill-bg);
+  border-radius: 9999px;
 }
 
 .ws-seg button {
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--ws-fg-muted);
+  border-radius: 9999px;
   min-height: 28px;
   padding: 0 12px;
   font: inherit;
   font-size: 12px;
   cursor: pointer;
-  transition: background-color 150ms ease, color 150ms ease;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
 }
 
-.ws-seg button:hover {
+.ws-seg button[aria-checked='false'] {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ws-fg-muted);
+}
+
+.ws-seg button[aria-checked='false']:hover {
   color: var(--ws-fg);
 }
 
 .ws-seg button[aria-checked='true'] {
-  background: var(--ws-primary);
-  color: #000;
   font-weight: 500;
 }
 
@@ -1340,27 +1493,18 @@ html.light .ws-pill:hover:not(:disabled) {
   position: relative;
   min-width: 44px;
   min-height: 32px;
-  padding: 0 10px;
-  border: 1px solid var(--ws-border);
-  border-radius: 999px;
-  background: var(--ws-pill-bg);
-  color: var(--ws-fg);
+  padding: 0 12px;
   font: inherit;
   font-size: 12px;
-  cursor: pointer;
-  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
 }
 
 .ws-det-btn[aria-checked='true'] {
-  border-color: transparent;
-  background: var(--ws-primary);
-  color: #000;
   font-weight: 500;
 }
 
 .ws-det-btn[aria-disabled='true'] {
   cursor: not-allowed;
-  opacity: 0.45;
+  opacity: 0.35;
 }
 
 .ws-tip {
@@ -1398,9 +1542,15 @@ html.light .ws-pill:hover:not(:disabled) {
 
 .ws-wave-plot {
   overflow: hidden;
-  border: 1px solid var(--ws-border);
-  border-radius: 10px;
-  background: var(--ws-muted);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background: rgba(10, 11, 16, 0.85);
+  backdrop-filter: blur(12px);
+}
+
+html.light .ws-wave-plot {
+  border-color: rgba(9, 9, 11, 0.16);
+  background: #f1f5f9;
 }
 
 .ws-wave-plot svg {
@@ -1416,11 +1566,11 @@ html.light .ws-pill:hover:not(:disabled) {
 }
 
 .ws-wave-window {
-  fill: rgba(228, 242, 34, 0.28);
+  fill: rgba(240, 255, 60, 0.22);
 }
 
 .ws-wave-centre {
-  stroke: var(--ws-primary);
+  stroke: rgb(var(--accent-lime));
   stroke-width: 1.5;
 }
 
@@ -1433,7 +1583,33 @@ html.light .ws-pill:hover:not(:disabled) {
 
 .ws-range {
   width: 8rem;
-  accent-color: var(--ws-primary);
+  height: 6px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.14);
+  accent-color: rgb(var(--accent-lime));
+  cursor: pointer;
+}
+
+.ws-range::-webkit-slider-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background: rgb(var(--accent-lime));
+  border: 1px solid rgba(0, 0, 0, 0.65);
+  box-shadow: 0 0 10px rgba(240, 255, 60, 0.45);
+}
+
+.ws-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background: rgb(var(--accent-lime));
+  border: 1px solid rgba(0, 0, 0, 0.65);
+  box-shadow: 0 0 10px rgba(240, 255, 60, 0.45);
+}
+
+html.light .ws-range {
+  background: rgba(9, 9, 11, 0.16);
 }
 
 .ws-caption {
@@ -1484,9 +1660,22 @@ html.light .ws-pill:hover:not(:disabled) {
 }
 
 .ws-pill[aria-pressed='true'] {
-  border-color: transparent;
-  background: var(--ws-primary);
-  color: #000;
+  background: rgba(240, 255, 60, 0.14);
+  border-color: rgba(240, 255, 60, 0.78);
+  color: rgb(240, 255, 60);
+  box-shadow: inset 0 1px 0 0 rgba(240, 255, 60, 0.35), 0 0 18px rgba(240, 255, 60, 0.16);
+}
+
+html.light .ws-pill[aria-pressed='true'] {
+  background: rgb(240, 255, 60);
+  border-color: #18181b;
+  color: #000000;
+}
+
+.ws-pill--primary[aria-pressed='true'] {
+  background: rgb(240, 255, 60);
+  border-color: rgb(240, 255, 60);
+  color: #000000;
 }
 
 .ws-blink-actions {
@@ -1546,33 +1735,202 @@ html.light .ws-pill:hover:not(:disabled) {
   transform: translate(-50%, -100%);
 }
 
-/* Scoped Aladin Lite overlay polish */
-.ws-map .aladin-location,
+/* Scoped Aladin Lite v3 Liquid Glass overrides */
+.ws-map .aladin-container {
+  --bg-color: rgba(12, 14, 20, 0.56);
+  --border-color: rgba(255, 255, 255, 0.16);
+  --text-color: rgba(255, 255, 255, 0.9);
+  --aladin-color: rgb(240, 255, 60);
+}
+
+.ws-map .exotrace-aladin-glass:is(button, [role='button'], select),
+.ws-map .aladin-btn {
+  background: rgba(12, 14, 20, 0.52) !important;
+  backdrop-filter: blur(18px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(160%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  border-radius: 9999px !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.22), 0 6px 24px rgba(0, 0, 0, 0.45) !important;
+  color: rgba(255, 255, 255, 0.88) !important;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.ws-map .exotrace-aladin-glass:is(button, [role='button'], select):hover,
+.ws-map .aladin-btn:hover,
+.ws-map .aladin-btn:focus-visible {
+  border-color: rgba(240, 255, 60, 0.72) !important;
+  color: rgb(240, 255, 60) !important;
+  background: rgba(240, 255, 60, 0.12) !important;
+}
+
+.ws-map .aladin-location {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px !important;
+  background: rgba(12, 14, 20, 0.52) !important;
+  backdrop-filter: blur(18px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(160%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.22), 0 6px 24px rgba(0, 0, 0, 0.45) !important;
+  overflow: hidden;
+  padding: 0 4px !important;
+}
+
+.ws-map .aladin-location .aladin-location-copy,
+.ws-map .aladin-location > .aladin-btn {
+  margin-right: 0 !important;
+  border: 0 !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 9999px 0 0 9999px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  color: rgba(255, 255, 255, 0.88) !important;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+
+.ws-map .aladin-location .aladin-location-copy:hover,
+.ws-map .aladin-location .aladin-location-copy:focus-visible {
+  border: 0 !important;
+  border-right: 1px solid rgba(240, 255, 60, 0.4) !important;
+  color: rgb(240, 255, 60) !important;
+  background: rgba(240, 255, 60, 0.12) !important;
+}
+
+.ws-map .aladin-location .aladin-input-text {
+  border: 0 !important;
+  border-radius: 0 9999px 9999px 0 !important;
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.92) !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  padding: 0.25rem 0.55rem !important;
+}
+
+.ws-map .aladin-cooFrame,
+.ws-map .aladin-projection-control,
+.ws-map .aladin-proj-control,
+.ws-map .aladin-fullScreen-control,
+.ws-map .aladin-grid-control {
+  border-radius: 9999px !important;
+  background: rgba(12, 14, 20, 0.52) !important;
+  backdrop-filter: blur(18px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(160%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.22), 0 6px 24px rgba(0, 0, 0, 0.45) !important;
+  color: rgba(255, 255, 255, 0.88) !important;
+}
+
+.ws-map .aladin-cooFrame > .aladin-btn,
+.ws-map .aladin-projection-control > .aladin-btn,
+.ws-map .aladin-proj-control > .aladin-btn,
+.ws-map .aladin-fullScreen-control > .aladin-btn,
+.ws-map .aladin-grid-control > .aladin-btn {
+  border: 0 !important;
+  border-radius: 9999px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: rgba(255, 255, 255, 0.88) !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
 .ws-map .aladin-fov,
-.ws-map .aladin-box {
-  background: rgba(10, 10, 13, 0.85) !important;
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+.ws-map .aladin-zoom-control {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px !important;
+  background: rgba(12, 14, 20, 0.52) !important;
+  backdrop-filter: blur(18px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(160%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.22), 0 6px 24px rgba(0, 0, 0, 0.45) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  padding-right: 0.6rem !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+.ws-map .aladin-fov .aladin-zoom-out,
+.ws-map .aladin-fov .aladin-zoom-in {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: rgba(255, 255, 255, 0.88) !important;
+}
+
+.ws-map .aladin-fov .aladin-zoom-out {
+  border-radius: 9999px 0 0 9999px !important;
+}
+
+.ws-map .aladin-fov .aladin-zoom-in {
+  border-radius: 0 !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.12) !important;
+  margin-right: 0.45rem !important;
+}
+
+.ws-map .aladin-cooFrame:hover,
+.ws-map .aladin-projection-control:hover,
+.ws-map .aladin-proj-control:hover,
+.ws-map .aladin-fullScreen-control:hover,
+.ws-map .aladin-grid-control:hover,
+.ws-map .aladin-fov .aladin-zoom-out:hover,
+.ws-map .aladin-fov .aladin-zoom-in:hover {
+  border-color: rgba(240, 255, 60, 0.72) !important;
+  color: rgb(240, 255, 60) !important;
+  background: rgba(240, 255, 60, 0.12) !important;
+}
+
+.ws-map .aladin-cooFrame:hover > .aladin-btn,
+.ws-map .aladin-projection-control:hover > .aladin-btn,
+.ws-map .aladin-proj-control:hover > .aladin-btn,
+.ws-map .aladin-fullScreen-control:hover > .aladin-btn,
+.ws-map .aladin-grid-control:hover > .aladin-btn {
+  border: 0 !important;
+  background: transparent !important;
+  color: rgb(240, 255, 60) !important;
+}
+
+.ws-map .aladin-box,
+.ws-map .aladin-context-menu,
+.ws-map .aladin-context-sub-menu {
+  background: rgba(10, 12, 18, 0.88) !important;
+  backdrop-filter: blur(20px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  border-radius: 14px !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.18), 0 12px 36px rgba(0, 0, 0, 0.6) !important;
+  color: #ffffff !important;
+  overflow: hidden;
+}
+
+.ws-map .aladin-context-menu .aladin-context-menu-item {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: rgba(255, 255, 255, 0.88) !important;
+  padding: 0.35rem 0.75rem !important;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.ws-map .aladin-context-menu .aladin-context-menu-item:last-child {
+  border-bottom: 0 !important;
+}
+
+.ws-map .aladin-context-menu .aladin-context-menu-item:hover,
+.ws-map .aladin-context-menu .aladin-context-menu-item.aladin-item-selected {
+  background: rgba(240, 255, 60, 0.14) !important;
+  color: rgb(240, 255, 60) !important;
+}
+
+.ws-map .aladin-tooltip {
+  background: rgba(10, 12, 18, 0.9) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
   border-radius: 10px !important;
   color: #ffffff !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-.ws-map .aladin-btn,
-.ws-map .aladin-projection-control,
-.ws-map .aladin-fullScreen-control,
-.ws-map .aladin-zoom-control > * {
-  background: rgba(10, 10, 13, 0.85) !important;
-  border-color: rgba(255, 255, 255, 0.15) !important;
-  color: #ffffff !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-.ws-map .aladin-btn:hover,
-.ws-map .aladin-projection-control:hover,
-.ws-map .aladin-fullScreen-control:hover {
-  border-color: rgba(228, 242, 34, 0.5) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
 }
 
 .ws-gaia {
@@ -1791,17 +2149,32 @@ html.light .ws-pill:hover:not(:disabled) {
   flex-direction: column;
   align-items: flex-start;
   gap: 4px;
-  padding: 8px 10px;
-  border: 1px solid var(--ws-border);
-  border-radius: 12px;
-  background: transparent;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  background: rgba(10, 11, 16, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   color: inherit;
   text-align: left;
   cursor: pointer;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
 }
 
-.ws-gaia-summary:hover {
-  border-color: var(--ws-fg);
+.ws-gaia-summary:hover,
+.ws-gaia-summary:focus-visible {
+  border-color: rgba(240, 255, 60, 0.65);
+  box-shadow: 0 0 16px rgba(240, 255, 60, 0.12);
+}
+
+html.light .ws-gaia-summary {
+  border-color: rgba(9, 9, 11, 0.18);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+html.light .ws-gaia-summary:hover,
+html.light .ws-gaia-summary:focus-visible {
+  border-color: #18181b;
 }
 
 .ws-tip-anchor {
@@ -1834,14 +2207,29 @@ html.light .ws-pill:hover:not(:disabled) {
   gap: 8px;
   min-height: 32px;
   padding: 0 12px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 999px;
-  background: rgba(10, 10, 13, 0.85);
-  color: #fff;
+  border-radius: 9999px;
+  background: rgba(12, 14, 20, 0.56);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.22), 0 6px 24px rgba(0, 0, 0, 0.45);
+  color: rgba(255, 255, 255, 0.9);
   font-size: 12px;
+  cursor: pointer;
+  transition: border-color 150ms ease, color 150ms ease, background-color 150ms ease;
+}
+
+.ws-map-layer:hover {
+  border-color: rgba(240, 255, 60, 0.65);
+  color: rgb(240, 255, 60);
+}
+
+.ws-map-layer input {
+  accent-color: rgb(var(--accent-lime));
 }
 
 .ws-map-layer input:disabled + span,
 .ws-map-layer:has(input:disabled) {
-  opacity: 0.45;
+  opacity: 0.4;
+  cursor: not-allowed;
 }

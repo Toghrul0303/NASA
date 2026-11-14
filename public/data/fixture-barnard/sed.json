@@ -1,0 +1,310 @@
+{
+  "schema_version": "1.0.0",
+  "slug": "fixture-barnard",
+  "data_version": "sha256:72382ae8d508f68c0387ca91a7539f39410c0becad94dcd497ef1f786aa4425a",
+  "flux_unit": "mJy",
+  "wavelength_unit": "um",
+  "aperture_radii_px": [
+    3,
+    4,
+    5
+  ],
+  "primary_aperture_index": 0,
+  "annulus_px": [
+    6,
+    10
+  ],
+  "solid_angle_source": "nominal_pixel",
+  "nominal_pixel_sr": 8.8897e-10,
+  "n_points": 12,
+  "points": [
+    {
+      "frame_index": 0,
+      "epoch_id": 0,
+      "detector": 1,
+      "channel": 4,
+      "mjd": 60400,
+      "obs_time_utc": "2024-03-31T00:00:00.000Z",
+      "lambda_um": 0.8452941176470589,
+      "bandwidth_um": 0.0211764705882353,
+      "flux_mjy": [
+        8.6,
+        10.319999999999999,
+        12.469999999999999
+      ],
+      "flux_err_mjy": [
+        0.4,
+        0.35,
+        0.3
+      ],
+      "flagged": false,
+      "centroid_x": 14.505951305698241,
+      "centroid_y": 14.030617019473281,
+      "centroid_err_px": 0.11
+    },
+    {
+      "frame_index": 1,
+      "epoch_id": 0,
+      "detector": 1,
+      "channel": 12,
+      "mjd": 60400.5,
+      "obs_time_utc": "2024-03-31T12:00:00.000Z",
+      "lambda_um": 1.0147058823529411,
+      "bandwidth_um": 0.0211764705882353,
+      "flux_mjy": [
+        9.8,
+        11.76,
+        14.21
+      ],
+      "flux_err_mjy": [
+        0.4,
+        0.35,
+        0.3
+      ],
+      "flagged": true,
+      "centroid_x": 14.506130039214614,
+      "centroid_y": 14.032923491804663,
+      "centroid_err_px": 0.11
+    },
+    {
+      "frame_index": 2,
+      "epoch_id": 0,
+      "detector": 2,
+      "channel": 20,
+      "mjd": 60410,
+      "obs_time_utc": "2024-04-10T00:00:00.000Z",
+      "lambda_um": 1.2191176470588236,
+      "bandwidth_um": 0.03117647058823528,
+      "flux_mjy": [
+        11,
+        13.2,
+        15.95
+      ],
+      "flux_err_mjy": [
+        0.4,
+        0.35,
+        0.3
+      ],
+      "flagged": true,
+      "centroid_x": 14.50952597519694,
+      "centroid_y": 14.076746466119774,
+      "centroid_err_px": 0.11
+    },
+    {
+      "frame_index": 3,
+      "epoch_id": 0,
+      "detector": 2,
+      "channel": 28,
+      "mjd": 60410.5,
+      "obs_time_utc": "2024-04-10T12:00:00.000Z",
+      "lambda_um": 1.4685294117647059,
+      "bandwidth_um": 0.03117647058823528,
+      "flux_mjy": [
+        12.2,
+        14.639999999999999,
+        17.689999999999998
+      ],
+      "flux_err_mjy": [
+        0.4,
+        0.35,
+        0.3
+      ],
+      "flagged": false,
+      "centroid_x": 14.509704708672952,
+      "centroid_y": 14.079052938451968,
+      "centroid_err_px": 0.11
+    },
+    {
+      "frame_index": 4,
+      "epoch_id": 1,
+      "detector": 1,
+      "channel": 4,
+      "mjd": 60450,
+      "obs_time_utc": "2024-05-20T00:00:00.000Z",
+      "lambda_um": 0.8452941176470589,
+      "bandwidth_um": 0.0211764705882353,
+      "flux_mjy": [
+        null,
+        null,
+        null
+      ],
+      "flux_err_mjy": [
+        null,
+        null,
+        null
+      ],
+      "flagged": false,
+      "centroid_x": 14.523824645178873,
+      "centroid_y": 14.261264253001503,
+      "centroid_err_px": 0.11
+    },
+    {
+      "frame_index": 5,
+      "epoch_id": 1,
+      "detector": 1,
+      "channel": 12,
+      "mjd": 60450.5,
+      "obs_time_utc": "2024-05-20T12:00:00.000Z",
+      "lambda_um": 1.0147058823529411,
+      "bandwidth_um": 0.0211764705882353,
+      "flux_mjy": [
+        9.8,
+        11.76,
+        14.21
+      ],
+      "flux_err_mjy": [
+        0.4,
+        0.35,
+        0.3
+      ],
+      "flagged": false,
+      "centroid_x": null,
+      "centroid_y": null,
+      "centroid_err_px": null
+    },
+    {
+      "frame_index": 6,
+      "epoch_id": 1,
+      "detector": 2,
+      "channel": 20,
+      "mjd": 60460,
+      "obs_time_utc": "2024-05-30T00:00:00.000Z",
+      "lambda_um": 1.2191176470588236,
+      "bandwidth_um": 0.03117647058823528,
+      "flux_mjy": [
+        11,
+        13.2,
+        15.95
+      ],
+      "flux_err_mjy": [
+        0.4,
+        0.35,
+        0.3
+      ],
+      "flagged": false,
+      "centroid_x": 14.527399310641451,
+      "centroid_y": 14.307393699797192,
+      "centroid_err_px": 0.11
+    },
+    {
+      "frame_index": 7,
+      "epoch_id": 1,
+      "detector": 2,
+      "channel": 28,
+      "mjd": 60460.5,
+      "obs_time_utc": "2024-05-30T12:00:00.000Z",
+      "lambda_um": 1.4685294117647059,
+      "bandwidth_um": 0.03117647058823528,
+      "flux_mjy": [
+        12.2,
+        14.639999999999999,
+        17.689999999999998
+      ],
+      "flux_err_mjy": [
+        0.4,
+        0.35,
+        0.3
+      ],
+      "flagged": false,
+      "centroid_x": 14.527578043885969,
+      "centroid_y": 14.309700172137369,
+      "centroid_err_px": 0.11
+    },
+    {
+      "frame_index": 8,
+      "epoch_id": 2,
+      "detector": 1,
+      "channel": 4,
+      "mjd": 60580,
+      "obs_time_utc": "2024-09-27T00:00:00.000Z",
+      "lambda_um": 0.8452941176470589,
+      "bandwidth_um": 0.0211764705882353,
+      "flux_mjy": [
+        8.6,
+        10.319999999999999,
+        12.469999999999999
+      ],
+      "flux_err_mjy": [
+        0.4,
+        0.35,
+        0.3
+      ],
+      "flagged": false,
+      "centroid_x": 14.57029523331801,
+      "centroid_y": 14.86094706379521,
+      "centroid_err_px": 0.11
+    },
+    {
+      "frame_index": 9,
+      "epoch_id": 2,
+      "detector": 1,
+      "channel": 12,
+      "mjd": 60580.5,
+      "obs_time_utc": "2024-09-27T12:00:00.000Z",
+      "lambda_um": 1.0147058823529411,
+      "bandwidth_um": 0.0211764705882353,
+      "flux_mjy": [
+        9.8,
+        11.76,
+        14.21
+      ],
+      "flux_err_mjy": [
+        0.4,
+        0.35,
+        0.3
+      ],
+      "flagged": false,
+      "centroid_x": 14.570473966107881,
+      "centroid_y": 14.863253536154401,
+      "centroid_err_px": 0.11
+    },
+    {
+      "frame_index": 10,
+      "epoch_id": 2,
+      "detector": 2,
+      "channel": 20,
+      "mjd": 60590,
+      "obs_time_utc": "2024-10-07T00:00:00.000Z",
+      "lambda_um": 1.2191176470588236,
+      "bandwidth_um": 0.03117647058823528,
+      "flux_mjy": [
+        11,
+        13.2,
+        15.95
+      ],
+      "flux_err_mjy": [
+        0.4,
+        0.35,
+        0.3
+      ],
+      "flagged": false,
+      "centroid_x": 14.573869888286684,
+      "centroid_y": 14.907076511002915,
+      "centroid_err_px": 0.11
+    },
+    {
+      "frame_index": 11,
+      "epoch_id": 2,
+      "detector": 2,
+      "channel": 28,
+      "mjd": 60590.5,
+      "obs_time_utc": "2024-10-07T12:00:00.000Z",
+      "lambda_um": 1.4685294117647059,
+      "bandwidth_um": 0.03117647058823528,
+      "flux_mjy": [
+        12.2,
+        14.639999999999999,
+        17.689999999999998
+      ],
+      "flux_err_mjy": [
+        0.4,
+        0.35,
+        0.3
+      ],
+      "flagged": false,
+      "centroid_x": 14.574048621036194,
+      "centroid_y": 14.909382983364086,
+      "centroid_err_px": 0.11
+    }
+  ]
+}

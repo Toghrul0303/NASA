@@ -1,0 +1,43 @@
+{
+  "name": "spherex-sky-explorer",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "fixture": "node scripts/make-fixture.mjs"
+  },
+  "dependencies": {
+    "aladin-lite": "3.8.2",
+    "d3-array": "3.2.5",
+    "d3-format": "3.1.3",
+    "d3-scale": "4.0.3",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "zustand": "5.1.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.1",
+    "@types/node": "24.10.1",
+    "@types/react": "18.3.18",
+    "@types/react-dom": "18.3.5",
+    "@vitejs/plugin-react": "4.7.0",
+    "autoprefixer": "10.4.21",
+    "eslint": "9.39.5",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-jsx-a11y": "6.10.2",
+    "eslint-plugin-react-hooks": "5.2.0",
+    "postcss": "8.5.6",
+    "prettier": "3.6.2",
+    "tailwindcss": "3.4.19",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.46.4",
+    "vite": "5.4.21",
+    "vitest": "2.1.9"
+  }
+}

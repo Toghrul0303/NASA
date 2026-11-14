@@ -7,14 +7,14 @@ import type { Config } from 'tailwindcss'
  * amber uses the contamination amber.
  */
 const epoch = {
-  0: '#E69F00',
-  1: '#56B4E9',
-  2: '#009E73',
-  3: '#F0E442',
-  4: '#0072B2',
-  5: '#D55E00',
-  6: '#CC79A7',
-  7: '#999999',
+  0: 'var(--epoch-0)',
+  1: 'var(--epoch-1)',
+  2: 'var(--epoch-2)',
+  3: 'var(--epoch-3)',
+  4: 'var(--epoch-4)',
+  5: 'var(--epoch-5)',
+  6: 'var(--epoch-6)',
+  7: 'var(--epoch-7)',
 } as const
 
 export default {
@@ -31,8 +31,15 @@ export default {
           border: 'rgba(240, 255, 60, 0.28)',
         },
         primary: {
-          DEFAULT: '#F0FF3C',
-          foreground: '#000000',
+          DEFAULT: 'var(--ws-primary)',
+          foreground: 'var(--ws-primary-fg)',
+        },
+        ws: {
+          bg: 'var(--ws-bg)',
+          fg: 'var(--ws-fg)',
+          border: 'var(--ws-border)',
+          muted: 'var(--ws-muted)',
+          primary: 'var(--ws-primary)',
         },
         secondary: {
           DEFAULT: 'rgba(255, 255, 255, 0.1)',
@@ -45,11 +52,14 @@ export default {
         border: 'rgba(255, 255, 255, 0.1)',
         input: 'rgba(255, 255, 255, 0.15)',
         ring: 'rgba(255, 255, 255, 0.55)',
-        mask: '#2B2F3A',
+        mask: 'var(--mask)',
+        neutral: {
+          DEFAULT: 'var(--neutral)',
+        },
         contamination: {
-          neutral: '#9AA4B2',
-          amber: '#F5A524',
-          red: '#E5484D',
+          neutral: 'var(--contamination-neutral)',
+          amber: 'var(--contamination-amber)',
+          red: 'var(--contamination-red)',
         },
         verdict: {
           consistent: '#009E73',
@@ -58,9 +68,9 @@ export default {
           unavailable: '#999999',
         },
         diverging: {
-          low: '#2B6CB0',
-          mid: '#E5E7EB',
-          high: '#DD6B20',
+          low: 'var(--diverging-low)',
+          mid: 'var(--diverging-mid)',
+          high: 'var(--diverging-high)',
         },
         epoch,
       },

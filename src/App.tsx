@@ -1,11 +1,9 @@
-import { lazy, Suspense } from 'react'
 import { AboutSection } from './ui/AboutSection'
 import { Footer } from './ui/Footer'
 import { HeroSection } from './ui/HeroSection'
 import { Navbar } from './ui/Navbar'
 import { PageBackground } from './ui/PageBackground'
-
-const AladinMap = lazy(() => import('./map/AladinMap').then((mod) => ({ default: mod.AladinMap })))
+import { WorkspacePage } from './ui/WorkspacePlaceholder'
 
 function currentPath(): string {
   const path = window.location.pathname
@@ -15,16 +13,7 @@ function currentPath(): string {
 
 export function App() {
   if (currentPath() === '/workspace') {
-    return (
-      <>
-        <Navbar />
-        <div className="h-svh bg-black pt-20">
-          <Suspense fallback={<div className="h-full w-full bg-black" aria-label="Loading sky map" />}>
-            <AladinMap />
-          </Suspense>
-        </div>
-      </>
-    )
+    return <WorkspacePage />
   }
 
   return (

@@ -12,3 +12,4 @@ __pycache__/
 # Pipeline products and fetch cache
 /data/
 /cache/
+data_backup/

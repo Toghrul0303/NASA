@@ -6,10 +6,15 @@
 #
 # Usage (from anywhere):
 #   powershell -File scripts\prewarm.ps1 -File scripts\prewarm.txt
+#   powershell -File scripts\prewarm.ps1 -File scripts\prewarm.txt -DryRun
+#   powershell -File scripts\prewarm.ps1 -File scripts\prewarm.txt -FetchBudget 1200 -SkipProbe
 
 param(
     [Parameter(Mandatory = $true)]
-    [string] $File
+    [string] $File,
+    [double] $FetchBudget = 1200,
+    [switch] $SkipProbe,
+    [switch] $DryRun
 )
 
 $ErrorActionPreference = "Continue"
@@ -24,10 +29,11 @@ if (-not (Test-Path -LiteralPath $File)) {
     exit 2
 }
 
-Set-Location -LiteralPath $Root
-$buildFailed = 0
-$validateFailed = 0
+$budget = "$FetchBudget"
+if ($budget -match '\.0+$') { $budget = $budget -replace '\.0+$', '' }
 
+$commands = @()
+$buildFailed = 0
 foreach ($raw in Get-Content -LiteralPath $File) {
     $line = $raw.Trim()
     if ($line.Length -eq 0 -or $line.StartsWith("#")) { continue }
@@ -40,12 +46,33 @@ foreach ($raw in Get-Content -LiteralPath $File) {
     $ra = $parts[0]
     $dec = $parts[1]
     $name = if ($parts.Count -ge 3) { $parts[2].Trim() } else { "" }
+    # "--dec=<value>" so a negative declination is not read as another flag.
+    $argv = @("build-coord", "--ra", $ra, "--dec=$dec", "--fetch-budget", $budget)
+    if ($name.Length -gt 0) { $argv += @("--name", $name) }
+    $shown = "spherex build-coord --ra $ra --dec=$dec"
+    if ($name.Length -gt 0) { $shown += " --name `"$name`"" }
+    $shown += " --fetch-budget $budget"
+    $commands += [pscustomobject]@{ Argv = $argv; Shown = $shown; Ra = $ra; Dec = $dec; Name = $name }
+}
 
-    $cmd = @("build-coord", "--ra", $ra, "--dec", $dec)
-    if ($name.Length -gt 0) { $cmd += @("--name", $name) }
-    $output = & $Spherex @cmd 2>&1 | ForEach-Object { $_.ToString() }
-    $text = $output -join "`n"
+if ($DryRun) {
+    foreach ($command in $commands) { Write-Output $command.Shown }
+    exit 0
+}
 
+Set-Location -LiteralPath $Root
+if (-not $SkipProbe) {
+    $probe = & $Spherex probe irsa 2>&1 | ForEach-Object { $_.ToString() }
+    $probeText = ($probe | Out-String)
+    if ($LASTEXITCODE -ne 0 -or $probeText -match '(?i)(\berror\b|not implemented|traceback)') {
+        Write-Output "IRSA unhealthy: skip pre-warm and retry later"
+        exit 5
+    }
+}
+
+$validateFailed = 0
+foreach ($command in $commands) {
+    $output = & $Spherex @($command.Argv) 2>&1 | ForEach-Object { $_.ToString() }
     $slug = $null
     $frames = $null
     $epochs = $null
@@ -68,7 +95,7 @@ foreach ($raw in Get-Content -LiteralPath $File) {
     if (-not $slug -or $null -eq $frames) {
         $detail = ($output | Where-Object { $_ -match 'FAILED|Error|error' } | Select-Object -Last 1)
         if (-not $detail) { $detail = ($output | Select-Object -Last 1) }
-        Write-Output "FAILED ra=$ra dec=$dec $detail"
+        Write-Output "FAILED ra=$($command.Ra) dec=$($command.Dec) $detail"
         $buildFailed++
         continue
     }

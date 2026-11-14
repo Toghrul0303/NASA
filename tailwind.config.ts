@@ -62,10 +62,10 @@ export default {
           red: 'var(--contamination-red)',
         },
         verdict: {
-          consistent: '#009E73',
-          inconsistent: '#F5A524',
-          none: '#56B4E9',
-          unavailable: '#999999',
+          consistent: 'var(--verdict-consistent)',
+          inconsistent: 'var(--verdict-inconsistent)',
+          none: 'var(--verdict-none)',
+          unavailable: 'var(--verdict-unavailable)',
         },
         diverging: {
           low: 'var(--diverging-low)',

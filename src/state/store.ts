@@ -36,6 +36,12 @@ export interface ViewState {
   fov: number
 }
 
+/** Grid position the frame canvas recentres on. Set from a Gaia source row. */
+export interface FrameFocus {
+  x: number
+  y: number
+}
+
 export type DatasetLoadStatus = 'idle' | 'loading' | 'ready' | 'error'
 
 export interface DatasetState {
@@ -99,11 +105,14 @@ export interface UiState {
 
 interface WorkspaceStore {
   view: ViewState
+  /** Latest source the Gaia table asked the canvas to centre on. A new object each time. */
+  frameFocus: FrameFocus | null
   tool: ToolState
   dataset: DatasetState
   job: JobState
   ui: UiState
   setView: (view: ViewState) => void
+  setFrameFocus: (focus: FrameFocus) => void
   setTool: (tool: ToolId) => void
   setFrame: (frame: FrameViewport) => void
   setBlink: (partial: BlinkPatch) => void
@@ -196,18 +205,23 @@ function watchReducedMotion(set: (partial: (state: WorkspaceStore) => Partial<Wo
   if (typeof query.addEventListener === 'function') query.addEventListener('change', apply)
 }
 
+const bootTheme = initialTheme()
+applyTheme(bootTheme)
+
 export const useWorkspaceStore = create<WorkspaceStore>()((set) => ({
   view: { ra: 0, dec: 0, fov: DEFAULT_FOV_DEG },
+  frameFocus: null,
   tool: { tool: 'map', frame: initialFrame(), blink: blinkForFrames([], prefersReducedMotion()) },
   dataset: { slug: null, status: 'idle', dataset: null, errorCode: null },
   job: { status: 'idle' },
   ui: {
     embed: false,
     reducedMotion: prefersReducedMotion(),
-    theme: initialTheme(),
+    theme: bootTheme,
     toasts: [],
   },
   setView: (view) => set({ view }),
+  setFrameFocus: (focus) => set({ frameFocus: { x: focus.x, y: focus.y } }),
   setTool: (tool) => set((state) => ({ tool: { ...state.tool, tool } })),
   setFrame: (frame) => set((state) => ({ tool: { ...state.tool, frame } })),
   setBlink: (partial) =>
@@ -273,6 +287,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set) => ({
     const generation = ++loadGeneration
     set((state) => ({
       dataset: { slug, status: 'loading', dataset: null, errorCode: null },
+      frameFocus: null,
       tool: {
         ...state.tool,
         frame: initialFrame(),
@@ -285,6 +300,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set) => ({
       const dataset = Object.freeze(loaded)
       set((state) => ({
         dataset: { slug, status: 'ready', dataset, errorCode: null },
+        frameFocus: null,
         view: {
           ...state.view,
           ra: dataset.meta.center.ra_deg,

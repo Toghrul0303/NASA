@@ -109,6 +109,26 @@ export function anchorZoom(
   return { zoom: placed.zoom, panX: placed.panX, panY: placed.panY }
 }
 
+/**
+ * Pan so the grid point `(x, y)` sits at the viewport centre, then clamp.
+ * Overlay mapping is `u = x + 0.5`, `v = imageH - 0.5 - y`.
+ */
+export function centerOnGrid(
+  size: ViewportSize,
+  zoom: number,
+  x: number,
+  y: number,
+  imageH: number,
+): FrameViewport {
+  const placed = placeView(size, zoom, 0, 0)
+  const u = x + 0.5
+  const v = imageH - 0.5 - y
+  const panX = placed.scale * (size.imageW / 2 - u)
+  const panY = placed.scale * (size.imageH / 2 - v)
+  const next = placeView(size, zoom, panX, panY)
+  return { zoom: next.zoom, panX: next.panX, panY: next.panY }
+}
+
 /** Wheel notches zoom out when `deltaY` is positive. `deltaMode` is the DOM delta mode. */
 export function wheelZoomFactor(deltaY: number, deltaMode: number): number {
   let delta = deltaY

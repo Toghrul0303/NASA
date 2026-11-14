@@ -10,6 +10,7 @@ import { gridToOverlay, pixelToWorld, type Grid, type OverlayPoint } from '../co
 import { useWorkspaceStore, type FrameViewport } from '../state/store'
 import {
   anchorZoom,
+  centerOnGrid,
   imagePixelAt,
   placeView,
   scaleBar,
@@ -259,6 +260,7 @@ export function FrameCanvas({
   caption,
 }: FrameCanvasProps) {
   const frame = useWorkspaceStore((state) => state.tool.frame)
+  const frameFocus = useWorkspaceStore((state) => state.frameFocus)
   const setFrame = useWorkspaceStore((state) => state.setFrame)
   const stageRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -288,6 +290,27 @@ export function FrameCanvas({
 
   const paintRef = useRef<() => void>(() => {})
   const scheduleRef = useRef<() => void>(() => {})
+  const appliedFocus = useRef<typeof frameFocus>(null)
+  const centerRef = useRef<() => void>(() => {})
+  centerRef.current = () => {
+    if (!frameFocus) {
+      appliedFocus.current = null
+      return
+    }
+    if (appliedFocus.current === frameFocus) return
+    const stage = stageRef.current
+    if (!stage || stage.clientWidth < 2 || stage.clientHeight < 2) return
+    const size: ViewportSize = {
+      cssW: stage.clientWidth,
+      cssH: stage.clientHeight,
+      imageW: W,
+      imageH: H,
+    }
+    appliedFocus.current = frameFocus
+    const next = centerOnGrid(size, viewportRef.current.zoom, frameFocus.x, frameFocus.y, H)
+    viewportRef.current = next
+    seenStore.current = next
+  }
 
   paintRef.current = () => {
     const canvas = canvasRef.current
@@ -379,12 +402,20 @@ export function FrameCanvas({
   useLayoutEffect(() => {
     const stage = stageRef.current
     if (!stage) return undefined
-    const draw = () => scheduleRef.current()
+    const draw = () => {
+      centerRef.current()
+      scheduleRef.current()
+    }
     const observer = new ResizeObserver(draw)
     observer.observe(stage)
     draw()
     return () => observer.disconnect()
   }, [])
+
+  useLayoutEffect(() => {
+    centerRef.current()
+    scheduleRef.current()
+  }, [frameFocus, H, W])
 
   useEffect(() => {
     // `drawOverlay` is read from props at paint time. Without it here, toggling
@@ -649,8 +680,8 @@ export function FrameCanvas({
       <p className="ws-sr" aria-live="polite" aria-atomic="true">
         {caption}
       </p>
-      <div className="ws-frame-bar">
-        <p className="ws-readout ws-num">
+      <div className="rounded-2xl bg-white dark:bg-[#0D0D12] border border-black/15 dark:border-white/10 px-3.5 py-2.5 flex flex-wrap items-center gap-2 sm:gap-3">
+        <p className="ws-readout font-mono tabular-nums text-zinc-900 dark:text-white/90">
           <span className="ws-sr">Pixel readout</span>
           {readout ? (
             <>
@@ -672,10 +703,10 @@ export function FrameCanvas({
               )}
             </>
           ) : (
-            <span>Hover a pixel</span>
+            <span className="text-zinc-500 dark:text-[#A1A1AA]">Hover a pixel</span>
           )}
         </p>
-        <span className="ws-num ws-zoom">{zoomLabel}</span>
+        <span className="font-mono tabular-nums text-xs text-zinc-600 dark:text-[#A1A1AA]">{zoomLabel}</span>
         <button type="button" className="ws-pill" onClick={savePng}>
           Save PNG
         </button>

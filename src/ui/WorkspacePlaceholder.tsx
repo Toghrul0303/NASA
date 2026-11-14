@@ -11,11 +11,11 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import type { MapTargetOption } from '../map/AladinMap'
+import type { Dataset } from '../data/dataset'
 import { loadRegistry, type RegistryEntry } from '../data/registry'
 import { useWorkspaceStore } from '../state/store'
 import { applyTheme } from './theme'
-import { AsteriskIcon } from './icons'
-import { Chip } from './Chip'
+import { AsteriskIcon, ChevronDownIcon, MoonIcon, SunIcon } from './icons'
 import { Skeleton } from './Skeleton'
 import { Lab } from '../lab/Lab'
 
@@ -90,6 +90,7 @@ export function WorkspacePage() {
   const [entries, setEntries] = useState<readonly RegistryEntry[]>([])
   const [labPct, setLabPct] = useState(LAB_DEFAULT)
   const mapRef = useRef<HTMLDivElement>(null)
+  const devGaiaPatched = useRef<Dataset | null>(null)
 
   useLayoutEffect(() => {
     applyTheme(theme)
@@ -136,6 +137,29 @@ export function WorkspacePage() {
     }
     if (import.meta.env.DEV) void loadDataset('fixture-barnard')
   }, [loadDataset, setEmbed])
+
+  // TEMP dev only
+  useEffect(() => {
+    if (!import.meta.env.DEV) return undefined
+    const dataset = datasetState.dataset
+    if (datasetState.status !== 'ready' || dataset === null) return undefined
+    const kind = new URLSearchParams(window.location.search).get('devGaia')
+    let cancelled = false
+    void import('../dev/gaiaSamples').then((mod) => {
+      if (cancelled || !mod.isGaiaSampleKind(kind)) return
+      if (devGaiaPatched.current === dataset) return
+      const next: Dataset = { ...dataset, gaia: mod.makeGaiaSample(dataset.gaia, kind) }
+      Object.freeze(next)
+      devGaiaPatched.current = next
+      useWorkspaceStore.setState((state) => {
+        if (state.dataset.dataset !== dataset) return state
+        return { dataset: { ...state.dataset, dataset: next } }
+      })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [datasetState.dataset, datasetState.status])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -212,79 +236,135 @@ export function WorkspacePage() {
 
   const tier1 = options.filter((entry) => entry.tier === 'tier1')
   const tier15 = options.filter((entry) => entry.tier === 'tier1_5')
+  const headerTitle =
+    datasetState.status === 'loading'
+      ? 'Loading dataset…'
+      : ready
+        ? dataset.meta.title
+        : datasetState.status === 'error'
+          ? 'Dataset unavailable'
+          : 'Pick a target'
 
   return (
     <div className="ws-shell" data-lab={labOpen ? 'open' : 'closed'} style={shellStyle}>
       {embed ? null : (
-        <header className="ws-header">
-          <a href="/" className="brand-mark" aria-label="ExoTrace home">
-            <AsteriskIcon />
-            <span className="brand-mark__word">ExoTrace</span>
-          </a>
-          <h1 className="ws-title">
-            {datasetState.status === 'loading' ? (
-              <Skeleton className="ws-skeleton--title" />
-            ) : ready ? (
-              dataset.meta.title
-            ) : datasetState.status === 'error' ? (
-              'Dataset unavailable'
-            ) : (
-              'Pick a target'
-            )}
-          </h1>
-          {ready ? <Chip tone="neutral">{tierLabel(dataset.meta.tier)}</Chip> : null}
-          {ready ? (
-            <Chip tone={dataset.meta.status === 'partial' ? 'partial' : 'neutral'}>{dataset.meta.status}</Chip>
-          ) : null}
-          {ready ? (
-            <span className="ws-num" title={dataset.meta.data_version}>
-              <span className="ws-sr">Data version</span>
-              {shortDataVersion(dataset.meta.data_version)}
-            </span>
-          ) : null}
-          <label>
-            <span className="ws-sr">Target</span>
-            <select
-              className="ws-select"
-              value={datasetState.slug ?? ''}
-              onChange={(event) => {
-                const slug = event.target.value
-                if (slug) void loadDataset(slug)
-              }}
+        <header className="h-12 flex-none bg-white/95 dark:bg-[#050505]/95 backdrop-blur-md border-b border-black/15 dark:border-white/10 px-4 flex items-center justify-between gap-3 text-zinc-950 dark:text-white">
+          <div className="flex items-center gap-3 min-w-0">
+            <a href="/" className="brand-mark shrink-0 !text-zinc-950 dark:!text-white" aria-label="ExoTrace home">
+              <AsteriskIcon className="w-[18px] h-[18px]" />
+              <span className="brand-mark__word">ExoTrace</span>
+            </a>
+            <span className="h-4 w-px bg-black/15 dark:bg-white/15 shrink-0" aria-hidden="true" />
+            <h1
+              className="m-0 text-sm font-medium text-zinc-900 dark:text-white/90 truncate max-w-[220px] xl:max-w-[380px]"
+              title={headerTitle}
             >
-              <option value="">Pick a target</option>
-              {tier1.length > 0 ? (
-                <optgroup label="Tier 1">
-                  {tier1.map((entry) => (
-                    <option key={entry.slug} value={entry.slug} disabled={!entry.available}>
-                      {entry.title ?? entry.slug}
-                    </option>
-                  ))}
-                </optgroup>
-              ) : null}
-              {tier15.length > 0 ? (
-                <optgroup label="Tier 1.5">
-                  {tier15.map((entry) => (
-                    <option key={entry.slug} value={entry.slug} disabled={!entry.available}>
-                      {entry.title ?? entry.slug}
-                    </option>
-                  ))}
-                </optgroup>
-              ) : null}
-            </select>
-          </label>
-          <button
-            type="button"
-            className="ws-pill"
-            aria-pressed={theme === 'dark'}
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          >
-            {theme === 'dark' ? 'Light theme' : 'Dark theme'}
-          </button>
+              {datasetState.status === 'loading' ? <Skeleton className="h-4 w-40 rounded-full" /> : headerTitle}
+            </h1>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {ready ? (
+              <div className="hidden md:flex items-center gap-2 rounded-full bg-black/[0.04] dark:bg-white/[0.04] border border-black/15 dark:border-white/10 px-2.5 py-1 text-xs">
+                <span className="text-zinc-700 dark:text-white/75 font-medium">{tierLabel(dataset.meta.tier)}</span>
+                <span
+                  className={
+                    dataset.meta.status === 'partial'
+                      ? 'rounded-full px-2 py-0.5 text-[11px] bg-amber-500/20 text-amber-900 dark:bg-amber-500/15 dark:text-amber-300 border border-amber-600/40 dark:border-amber-400/35'
+                      : 'rounded-full px-2 py-0.5 text-[11px] bg-emerald-500/15 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-300 border border-emerald-600/30 dark:border-emerald-500/25'
+                  }
+                >
+                  {dataset.meta.status}
+                </span>
+                <span
+                  className="font-mono tabular-nums text-[11px] text-zinc-600 dark:text-white/60 bg-black/[0.05] dark:bg-white/[0.05] rounded-full px-2 py-0.5"
+                  title={dataset.meta.data_version}
+                >
+                  <span className="ws-sr">Data version</span>
+                  {shortDataVersion(dataset.meta.data_version)}
+                </span>
+              </div>
+            ) : null}
+
+            <label className="relative inline-flex items-center">
+              <span className="ws-sr">Target</span>
+              <select
+                className="appearance-none rounded-full bg-white dark:bg-[#0D0D12] border border-black/20 dark:border-white/15 hover:border-[#E4F222]/60 focus:border-[#E4F222] text-zinc-900 dark:text-white text-xs pl-3.5 pr-8 py-1.5 max-w-[230px] truncate transition-colors cursor-pointer"
+                value={datasetState.slug ?? ''}
+                onChange={(event) => {
+                  const slug = event.target.value
+                  if (slug) void loadDataset(slug)
+                }}
+              >
+                <option value="" className="bg-white text-zinc-900 dark:bg-[#0D0D12] dark:text-white">
+                  Pick a target
+                </option>
+                {tier1.length > 0 ? (
+                  <optgroup label="Tier 1" className="bg-white text-zinc-900 dark:bg-[#0D0D12] dark:text-white">
+                    {tier1.map((entry) => (
+                      <option
+                        key={entry.slug}
+                        value={entry.slug}
+                        disabled={!entry.available}
+                        className={
+                          entry.available
+                            ? 'bg-white text-zinc-900 dark:bg-[#0D0D12] dark:text-white'
+                            : 'bg-white text-zinc-400 dark:bg-[#0D0D12] dark:text-white/35'
+                        }
+                      >
+                        {entry.title ?? entry.slug}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+                {tier15.length > 0 ? (
+                  <optgroup label="Tier 1.5" className="bg-white text-zinc-900 dark:bg-[#0D0D12] dark:text-white">
+                    {tier15.map((entry) => (
+                      <option
+                        key={entry.slug}
+                        value={entry.slug}
+                        disabled={!entry.available}
+                        className={
+                          entry.available
+                            ? 'bg-white text-zinc-900 dark:bg-[#0D0D12] dark:text-white'
+                            : 'bg-white text-zinc-400 dark:bg-[#0D0D12] dark:text-white/35'
+                        }
+                      >
+                        {entry.title ?? entry.slug}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+              </select>
+              <ChevronDownIcon className="pointer-events-none absolute right-2.5 w-3.5 h-3.5 text-zinc-500 dark:text-white/60" />
+            </label>
+
+            <button
+              type="button"
+              className="rounded-full bg-black/[0.04] dark:bg-white/[0.04] border border-black/20 dark:border-white/[0.12] hover:border-black/40 dark:hover:border-white/30 text-zinc-800 dark:text-white/80 hover:text-black dark:hover:text-white text-xs px-3 py-1.5 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+              aria-pressed={theme === 'dark'}
+              aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            >
+              {theme === 'dark' ? <SunIcon className="w-3.5 h-3.5" /> : <MoonIcon className="w-3.5 h-3.5" />}
+              <span className="hidden sm:inline">{theme === 'dark' ? 'Light' : 'Dark'}</span>
+            </button>
+
+            {ready ? (
+              <button
+                type="button"
+                className="hidden lg:inline-flex items-center gap-1.5 rounded-full bg-zinc-900 dark:bg-[#0A0A0D] border border-[#E4F222]/70 text-[#E4F222] hover:bg-[#E4F222] hover:text-black font-medium text-xs px-3.5 py-1.5 transition-colors cursor-pointer"
+                aria-expanded={tool !== 'map'}
+                onClick={toggleLab}
+              >
+                {tool === 'map' ? 'Open Lab' : 'Close Lab'}
+              </button>
+            ) : null}
+          </div>
         </header>
       )}
       <div className="ws-body">
-        <div ref={mapRef} className="ws-map">
+        <div ref={mapRef} className="ws-map bg-black">
           <Suspense fallback={<div className="h-full w-full bg-black" aria-label="Loading sky map" />}>
             <AladinMap
               ra={view.ra}
@@ -297,20 +377,24 @@ export function WorkspacePage() {
               }}
             />
           </Suspense>
-          {ready && tool === 'map' ? (
-            <button type="button" className="ws-pill ws-pill--primary ws-open-lab" onClick={toggleLab}>
-              Open lab
+          {embed && ready && tool === 'map' ? (
+            <button
+              type="button"
+              className="ws-open-lab rounded-full bg-[#0A0A0D] border border-[#E4F222]/70 text-[#E4F222] hover:bg-[#E4F222] hover:text-black font-medium text-xs px-3.5 py-1.5 transition-colors"
+              onClick={toggleLab}
+            >
+              Open Lab
             </button>
           ) : null}
         </div>
         {datasetState.status === 'ready' ? (
           <button type="button" className="ws-pill ws-lab-toggle" aria-expanded={tool !== 'map'} onClick={toggleLab}>
-            {tool === 'map' ? 'Show lab' : 'Hide lab'}
+            {tool === 'map' ? 'Open Lab' : 'Close Lab'}
           </button>
         ) : null}
         {/* eslint-disable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex */}
         <div
-          className="ws-separator"
+          className="ws-separator group w-1.5 bg-transparent hover:bg-[#E4F222]/40 focus-visible:bg-[#E4F222]/60 transition-colors cursor-col-resize items-center justify-center"
           role="separator"
           aria-orientation="vertical"
           aria-label="Resize laboratory panel"
@@ -321,9 +405,14 @@ export function WorkspacePage() {
           tabIndex={0}
           onKeyDown={onSeparatorKey}
           onPointerDown={onSeparatorDown}
-        />
+        >
+          <span className="w-px h-8 bg-black/20 dark:bg-white/20 group-hover:bg-black/40 dark:group-hover:bg-white/40 transition-colors" aria-hidden="true" />
+        </div>
         {/* eslint-enable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex */}
-        <aside className="ws-lab" aria-label="Laboratory">
+        <aside
+          className="ws-lab bg-slate-50 dark:bg-[#07070A] border-t lg:border-t-0 lg:border-l border-black/15 dark:border-white/10 text-zinc-950 dark:text-white"
+          aria-label="Laboratory"
+        >
           <Lab />
         </aside>
       </div>

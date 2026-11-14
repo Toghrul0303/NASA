@@ -23,6 +23,7 @@ import { useWorkspaceStore, type BlinkOverlays } from '../../state/store'
 import { FrameCanvas, type FrameOverlayHelpers } from '../FrameCanvas'
 import { drawBlinkOverlay, type GridMark } from '../blinkOverlay'
 import { DetectorPicker } from '../widgets/DetectorPicker'
+import { GaiaSummary } from '../widgets/GaiaSummary'
 import { TimeSlider, type TimeTick } from '../widgets/TimeSlider'
 import { WavelengthWindow } from '../widgets/WavelengthWindow'
 
@@ -460,10 +461,12 @@ function BlinkReady({ dataset }: { dataset: Dataset }) {
               Change detector
             </button>
           </div>
+          <GaiaSummary />
         </div>
       ) : (
         <>
           {currentFrame ? <FrameCaption frame={currentFrame} /> : <p className="ws-caption">{caption}</p>}
+          <GaiaSummary />
           <FrameCanvas
             plane={plane}
             sigma={sigma}

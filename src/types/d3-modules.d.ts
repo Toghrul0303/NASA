@@ -17,3 +17,10 @@ declare module 'd3-array' {
   ): number | undefined
   export function extent(values: Iterable<number>): [number, number] | [undefined, undefined]
 }
+
+declare module 'd3-format' {
+  export interface FormatFn {
+    (value: number): string
+  }
+  export function format(specifier: string): FormatFn
+}

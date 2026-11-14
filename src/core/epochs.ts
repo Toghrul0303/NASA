@@ -16,6 +16,18 @@ export function epochLabel(epochId: number): string {
   return `E${epochId}`
 }
 
+/** Marker shape. Colour stays Okabe-Ito `e mod 8`; the shape steps every 8 epochs. §15.3. */
+export const EPOCH_SHAPES = ['circle', 'square', 'triangle', 'diamond'] as const
+
+export type EpochShape = (typeof EPOCH_SHAPES)[number]
+
+/** `floor(epochId / 8) mod 4` → circle, square, triangle, diamond. */
+export function epochShape(epochId: number): EpochShape {
+  const index = Math.floor(epochId / 8) % EPOCH_SHAPES.length
+  const wrapped = ((index % EPOCH_SHAPES.length) + EPOCH_SHAPES.length) % EPOCH_SHAPES.length
+  return EPOCH_SHAPES[wrapped] ?? 'circle'
+}
+
 /**
  * Contiguous runs of the same epoch. The boundary between two items is the
  * `start` of every run after the first.

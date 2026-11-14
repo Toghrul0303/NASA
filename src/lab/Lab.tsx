@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { datasetErrorMessage, framesNotFetched, gaiaCopy } from '../config/copy'
+import { datasetErrorMessage, framesNotFetched, gaiaCopy, sedCopy } from '../config/copy'
 import { isToolId, TOOLS, toolById } from '../config/tools'
 import type { Dataset } from '../data/dataset'
 import { useWorkspaceStore } from '../state/store'
@@ -9,6 +9,7 @@ import { Tabs } from '../ui/Tabs'
 
 const BlinkTool = lazy(() => import('./tools/BlinkTool').then((mod) => ({ default: mod.BlinkTool })))
 const GaiaPanel = lazy(() => import('./tools/GaiaPanel').then((mod) => ({ default: mod.GaiaPanel })))
+const SedTool = lazy(() => import('./tools/SedTool').then((mod) => ({ default: mod.SedTool })))
 
 const LAB_TOOLS = TOOLS.filter((tool) => !tool.closesLab)
 const LOAD_STEPS = ['meta', 'files', 'verification'] as const
@@ -107,6 +108,23 @@ function DatasetState({ onRetry }: { onRetry: () => void }) {
         }
       >
         <BlinkTool />
+      </Suspense>
+    )
+  }
+
+  if (tool === 'sed') {
+    return (
+      <Suspense
+        fallback={
+          <div
+            className="rounded-2xl bg-white dark:bg-[#0A0B10]/85 backdrop-blur-md border border-black/15 dark:border-white/12 p-4 text-sm text-zinc-600 dark:text-[#A1A1AA]"
+            role="status"
+          >
+            {sedCopy.loading}
+          </div>
+        }
+      >
+        <SedTool />
       </Suspense>
     )
   }

@@ -45,12 +45,93 @@ export const lineMarkerLabels = {
 
 export type LineMarkerId = keyof typeof lineMarkerLabels
 
+function isLineMarkerId(name: string): name is LineMarkerId {
+  return Object.prototype.hasOwnProperty.call(lineMarkerLabels, name)
+}
+
+/** Display name for a `line_markers` entry. Unknown names are returned unchanged. */
+export function lineMarkerDisplayName(name: string): string {
+  return isLineMarkerId(name) ? lineMarkerLabels[name] : name
+}
+
+/** Tooltip for one spectral line: display name and wavelength. */
+export function lineMarkerHover(name: string, lambdaUm: string): string {
+  return `${lineMarkerDisplayName(name)}, ${lambdaUm} µm`
+}
+
 /** Mandatory photometry labels. §13. */
 export const photometry = {
   quickLook: 'Quick-look from L2 cutouts',
   notScienceGrade: 'Not science-grade photometry',
   dichroicGap: 'Dichroic gap (channels 50-51)',
 } as const
+
+/** SED and lambda-time chrome. §13. */
+export const sedCopy = {
+  toolLabel: 'SED and lambda-time',
+  loading: 'Loading SED',
+  openIrsa: 'Open in IRSA Spectrophotometry Tool',
+  aperture: 'Aperture',
+  hideFlagged: 'Hide flagged',
+  detectors: 'Detectors',
+  epochs: 'Epochs',
+  noFrames: 'No frames',
+  showOnlyEpoch: 'Show only this epoch',
+  showAllEpochs: 'Show all epochs',
+  viewLabel: 'Photometry view',
+  viewSed: 'SED',
+  viewLambdaTime: 'λ–time',
+  lambdaTimePending: 'The lambda-time plane will be shown here.',
+  logWavelength: 'Log wavelength',
+  asinhFlux: 'Signed asinh flux',
+  lineMarkers: 'Line markers',
+  plotLabel:
+    'Spectral energy distribution. One marker per frame, coloured by epoch. Flagged markers are hollow. Points are not connected.',
+  wavelengthAxis: 'Wavelength (µm)',
+  fluxAxis: 'Flux (mJy)',
+  noPoints: 'No photometry points for this selection.',
+  flagged: 'flagged',
+  notFlagged: 'not flagged',
+  contaminationLevel: 'contamination level',
+  solidAngleSapm: 'per-detector solid-angle pixel map',
+} as const
+
+export function apertureRadius(px: number): string {
+  return `${px} px`
+}
+
+export function framesWithoutPhotometry(count: number): string {
+  return `${count} frames without photometry`
+}
+
+export function solidAngleNominal(nominalPixelSr: number): string {
+  return `nominal pixel solid angle ${nominalPixelSr} sr`
+}
+
+export function annulusLabel(innerPx: number, outerPx: number): string {
+  return `Annulus ${innerPx}–${outerPx} px`
+}
+
+export function sedAtEpoch(epochId: number): string {
+  return `SED at epoch ${epochId}`
+}
+
+/** Hover and live-region text for one SED point. Flux and wavelength are already formatted. */
+export function sedPointHover(input: {
+  obsTimeUtc: string
+  epochId: number
+  detector: number
+  lambdaUm: string
+  bandwidthUm: string
+  fluxMjy: string
+  fluxErrMjy: string
+  contamination: string
+  flagged: boolean
+}): string {
+  const flag = input.flagged ? sedCopy.flagged : sedCopy.notFlagged
+  const flux = input.fluxErrMjy === '' ? `${input.fluxMjy} mJy` : `${input.fluxMjy} ± ${input.fluxErrMjy} mJy`
+  return `${input.obsTimeUtc}, epoch ${input.epochId}, D${input.detector}, ${input.lambdaUm} µm, bandwidth ${input.bandwidthUm} µm, ${flux}, ${sedCopy.contaminationLevel} ${input.contamination}, ${flag}`
+}
 
 /** Quoted Gaia-panel sentences besides the verdict headlines. §14. */
 export const gaiaCopy = {

@@ -8,8 +8,10 @@ import type { ToolId } from '../config/tools'
 import type { Detector, Frame } from '../contract/types'
 import { ContractError, type ContractErrorCode } from '../contract/validate'
 import {
+  DETECTORS,
   defaultDetector,
   defaultLambda0,
+  enabledDetectors,
   FPS_DEFAULT,
   FPS_MAX,
   FPS_MIN,
@@ -82,10 +84,42 @@ export type BlinkPatch = Partial<Omit<BlinkState, 'overlays'>> & {
   overlays?: Partial<BlinkOverlays>
 }
 
+export type SedViewId = 'sed' | 'lambdaTime'
+
+export type SedTimeAxis = 'compressed' | 'true'
+
+/** Wavelength window shared with Blink. Initialised from the Blink state on dataset load. */
+export interface SedBand {
+  lambda0: number
+  k: number
+}
+
+/** SED / lambda-time controls. Reset when the dataset changes. §13. */
+export interface SedState {
+  view: SedViewId
+  /** Index into `sed.aperture_radii_px`. Default `primary_aperture_index`. */
+  aperture: number
+  hideFlagged: boolean
+  /** Detectors left on. Absent detectors stay disabled in the control. */
+  detectors: Detector[]
+  hiddenEpochs: number[]
+  /** One epoch, or null for every epoch that is not hidden. */
+  epochSlice: number | null
+  logX: boolean
+  asinhY: boolean
+  /** Spectral line markers. On by default. */
+  showLines: boolean
+  timeAxis: SedTimeAxis
+  band: SedBand
+}
+
+export type SedPatch = Partial<SedState>
+
 export interface ToolState {
   tool: ToolId
   frame: FrameViewport
   blink: BlinkState
+  sed: SedState
 }
 
 export interface JobState {
@@ -120,6 +154,7 @@ interface WorkspaceStore {
   setTool: (tool: ToolId) => void
   setFrame: (frame: FrameViewport) => void
   setBlink: (partial: BlinkPatch) => void
+  setSed: (partial: SedPatch) => void
   stepBlink: (delta: number) => void
   /** Point the frames blink at one `frames.json` row and open the Blink tool. */
   openFrameInBlink: (frameIndex: number) => void
@@ -173,6 +208,33 @@ export function blinkForFrames(frames: readonly Frame[], reducedMotion: boolean)
   }
 }
 
+function initialSedState(blink: BlinkState): SedState {
+  return {
+    view: 'sed',
+    aperture: 0,
+    hideFlagged: false,
+    detectors: [...DETECTORS],
+    hiddenEpochs: [],
+    epochSlice: null,
+    logX: false,
+    asinhY: false,
+    showLines: true,
+    timeAxis: 'compressed',
+    band: { lambda0: blink.lambda0, k: blink.k },
+  }
+}
+
+/** Fresh SED controls for a loaded dataset. The band copies the Blink window. */
+export function sedStateFor(dataset: Dataset, blink: BlinkState): SedState {
+  const present = enabledDetectors(dataset.frames.epochs)
+  const aperture = dataset.sed?.primary_aperture_index ?? 0
+  return {
+    ...initialSedState(blink),
+    aperture,
+    detectors: present.length > 0 ? [...present] : [...DETECTORS],
+  }
+}
+
 function selectionLength(dataset: Dataset, blink: BlinkState): number {
   if (blink.mode === 'epochs') return selectEpochCoadds(dataset.coadds.coadds, blink.detector).length
   return selectFrames(dataset.frames.frames, blink.detector, blink.lambda0, blink.k).length
@@ -212,17 +274,19 @@ function watchReducedMotion(set: (partial: (state: WorkspaceStore) => Partial<Wo
 
 const bootTheme = initialTheme()
 applyTheme(bootTheme)
+const bootReducedMotion = prefersReducedMotion()
+const bootBlink = blinkForFrames([], bootReducedMotion)
 
 export const useWorkspaceStore = create<WorkspaceStore>()((set) => ({
   view: { ra: 0, dec: 0, fov: DEFAULT_FOV_DEG },
   frameFocus: null,
   gaiaLayer: false,
-  tool: { tool: 'map', frame: initialFrame(), blink: blinkForFrames([], prefersReducedMotion()) },
+  tool: { tool: 'map', frame: initialFrame(), blink: bootBlink, sed: initialSedState(bootBlink) },
   dataset: { slug: null, status: 'idle', dataset: null, errorCode: null },
   job: { status: 'idle' },
   ui: {
     embed: false,
-    reducedMotion: prefersReducedMotion(),
+    reducedMotion: bootReducedMotion,
     theme: bootTheme,
     toasts: [],
   },
@@ -237,6 +301,10 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set) => ({
         ...state.tool,
         blink: clampItemIndex(state.dataset.dataset, mergeBlink(state.tool.blink, partial)),
       },
+    })),
+  setSed: (partial) =>
+    set((state) => ({
+      tool: { ...state.tool, sed: { ...state.tool.sed, ...partial } },
     })),
   stepBlink: (delta) =>
     set((state) => {
@@ -292,34 +360,42 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set) => ({
     const controller = new AbortController()
     loadController = controller
     const generation = ++loadGeneration
-    set((state) => ({
-      dataset: { slug, status: 'loading', dataset: null, errorCode: null },
-      frameFocus: null,
-      gaiaLayer: false,
-      tool: {
-        ...state.tool,
-        frame: initialFrame(),
-        blink: blinkForFrames([], state.ui.reducedMotion),
-      },
-    }))
+    set((state) => {
+      const blink = blinkForFrames([], state.ui.reducedMotion)
+      return {
+        dataset: { slug, status: 'loading', dataset: null, errorCode: null },
+        frameFocus: null,
+        gaiaLayer: false,
+        tool: {
+          ...state.tool,
+          frame: initialFrame(),
+          blink,
+          sed: initialSedState(blink),
+        },
+      }
+    })
     try {
       const loaded = await fetchDataset(slug, { signal: controller.signal })
       if (generation !== loadGeneration || controller.signal.aborted) return
       const dataset = Object.freeze(loaded)
-      set((state) => ({
-        dataset: { slug, status: 'ready', dataset, errorCode: null },
-        frameFocus: null,
-        gaiaLayer: dataset.gaia?.query_status === 'ok',
-        view: {
-          ...state.view,
-          ra: dataset.meta.center.ra_deg,
-          dec: dataset.meta.center.dec_deg,
-        },
-        tool: {
-          ...state.tool,
-          blink: blinkForFrames(dataset.frames.frames, state.ui.reducedMotion),
-        },
-      }))
+      set((state) => {
+        const blink = blinkForFrames(dataset.frames.frames, state.ui.reducedMotion)
+        return {
+          dataset: { slug, status: 'ready', dataset, errorCode: null },
+          frameFocus: null,
+          gaiaLayer: dataset.gaia?.query_status === 'ok',
+          view: {
+            ...state.view,
+            ra: dataset.meta.center.ra_deg,
+            dec: dataset.meta.center.dec_deg,
+          },
+          tool: {
+            ...state.tool,
+            blink,
+            sed: sedStateFor(dataset, blink),
+          },
+        }
+      })
     } catch (error) {
       if (generation !== loadGeneration || controller.signal.aborted) return
       const errorCode = error instanceof ContractError ? error.code : 'invalid'

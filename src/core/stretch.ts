@@ -118,3 +118,57 @@ export function renderGrayscale(
     outRGBA[offset + 3] = 255
   }
 }
+
+/** Viridis-like stops. FRONTEND_SPEC §15.3. Linear RGB interpolation, 256 entries, built once. */
+const VIRIDIS_STOPS: readonly (readonly [number, number, number])[] = [
+  [0x44, 0x01, 0x54],
+  [0x48, 0x28, 0x78],
+  [0x3e, 0x4a, 0x89],
+  [0x31, 0x68, 0x8e],
+  [0x26, 0x82, 0x8e],
+  [0x1f, 0x9e, 0x89],
+  [0x35, 0xb7, 0x79],
+  [0x6d, 0xcd, 0x59],
+  [0xb4, 0xde, 0x2c],
+  [0xfd, 0xe7, 0x25],
+]
+
+function lerpByte(start: number, end: number, t: number): number {
+  return Math.round(start + (end - start) * t)
+}
+
+function buildViridisLut(): Uint8ClampedArray {
+  const lut = new Uint8ClampedArray(256 * 3)
+  const last = VIRIDIS_STOPS.length - 1
+  for (let index = 0; index < 256; index += 1) {
+    const scaled = (index / 255) * last
+    const stop = Math.min(last - 1, Math.floor(scaled))
+    const t = scaled - stop
+    const left = VIRIDIS_STOPS[stop]
+    const right = VIRIDIS_STOPS[stop + 1]
+    if (!left || !right) continue
+    const offset = index * 3
+    lut[offset] = lerpByte(left[0], right[0], t)
+    lut[offset + 1] = lerpByte(left[1], right[1], t)
+    lut[offset + 2] = lerpByte(left[2], right[2], t)
+  }
+  return lut
+}
+
+/** 256 RGB triples, index 0 at the first stop and index 255 at the last. Built once per page load. */
+export const VIRIDIS_LUT: Uint8ClampedArray = buildViridisLut()
+
+/** Lookup one LUT entry. `index` is clamped to 0..255. */
+export function viridisRgb(index: number): readonly [number, number, number] {
+  const clamped = Math.min(255, Math.max(0, Math.round(index)))
+  const offset = clamped * 3
+  return [VIRIDIS_LUT[offset] ?? 0, VIRIDIS_LUT[offset + 1] ?? 0, VIRIDIS_LUT[offset + 2] ?? 0]
+}
+
+/**
+ * Section 9.5 asinh stretch of one finite flux, then the sequential LUT.
+ * `a` is `ASINH_SOFTENING`, shared with every other stretch.
+ */
+export function sequentialRgb(v: number, lo: number, hi: number): readonly [number, number, number] {
+  return viridisRgb(Math.round(255 * asinhValue(v, lo, hi, ASINH_SOFTENING)))
+}

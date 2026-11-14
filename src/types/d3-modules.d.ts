@@ -6,8 +6,12 @@ declare module 'd3-scale' {
     invert(value: number): number
     domain(domain: readonly number[]): this
     range(range: readonly number[]): this
+    clamp(clamp: boolean): this
+    ticks(count?: number): number[]
+    tickFormat(count?: number, specifier?: string): (value: number) => string
   }
   export function scaleLinear(): LinearScale
+  export function scaleLog(): LinearScale
 }
 
 declare module 'd3-array' {
@@ -16,6 +20,7 @@ declare module 'd3-array' {
     accessor: (value: T) => number | null | undefined,
   ): number | undefined
   export function extent(values: Iterable<number>): [number, number] | [undefined, undefined]
+  export function median(values: Iterable<number | null | undefined>): number | undefined
 }
 
 declare module 'd3-format' {

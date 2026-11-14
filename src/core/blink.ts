@@ -64,11 +64,15 @@ export function defaultDetector(frames: readonly Frame[]): Detector {
 }
 
 /**
- * `|lambda_um - lambda0| <= k * bandwidth_um`, using this frame's own bandwidth.
- * The edge is inclusive.
+ * `|lambda_um - lambda0| <= k * bandwidth_um`, using this sample's own bandwidth.
+ * The edge is inclusive. Frames and SED points both satisfy the shape.
  */
-export function inWindow(frame: Frame, lambda0: number, k: number): boolean {
-  return Math.abs(frame.lambda_um - lambda0) <= k * frame.bandwidth_um
+export function inWindow(
+  sample: { readonly lambda_um: number; readonly bandwidth_um: number },
+  lambda0: number,
+  k: number,
+): boolean {
+  return Math.abs(sample.lambda_um - lambda0) <= k * sample.bandwidth_um
 }
 
 /**

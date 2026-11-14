@@ -4,6 +4,7 @@ import {
   useEffect,
   useLayoutEffect,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
   type KeyboardEvent,
@@ -23,6 +24,21 @@ const AladinMap = lazy(() => import('../map/AladinMap').then((mod) => ({ default
 const LAB_MIN = 30
 const LAB_MAX = 60
 const LAB_DEFAULT = 45
+
+/** Aladin's top row: projection, fullscreen, and the coordinate box. */
+const ALADIN_TOP_ROW = '.aladin-projection-control, .aladin-fullScreen-control, .aladin-location'
+
+function syncMapChrome(map: HTMLElement): void {
+  const mapRect = map.getBoundingClientRect()
+  let bottom = 0
+  for (const node of map.querySelectorAll<HTMLElement>(ALADIN_TOP_ROW)) {
+    const rect = node.getBoundingClientRect()
+    if (rect.width === 0 || rect.height === 0) continue
+    bottom = Math.max(bottom, rect.bottom - mapRect.top)
+  }
+  if (bottom > 0) map.style.setProperty('--aladin-chrome-bottom', `${bottom}px`)
+  else map.style.removeProperty('--aladin-chrome-bottom')
+}
 
 function shortDataVersion(dataVersion: string): string {
   const marker = 'sha256:'
@@ -73,10 +89,41 @@ export function WorkspacePage() {
   const setTheme = useWorkspaceStore((state) => state.setTheme)
   const [entries, setEntries] = useState<readonly RegistryEntry[]>([])
   const [labPct, setLabPct] = useState(LAB_DEFAULT)
+  const mapRef = useRef<HTMLDivElement>(null)
 
   useLayoutEffect(() => {
     applyTheme(theme)
   }, [theme])
+
+  useLayoutEffect(() => {
+    const map = mapRef.current
+    if (!map) return undefined
+    let frame = 0
+    const schedule = () => {
+      if (frame !== 0) return
+      frame = requestAnimationFrame(() => {
+        frame = 0
+        syncMapChrome(map)
+      })
+    }
+    const resize = new ResizeObserver(schedule)
+    resize.observe(map)
+    const watchControls = () => {
+      for (const node of map.querySelectorAll<HTMLElement>(ALADIN_TOP_ROW)) resize.observe(node)
+    }
+    watchControls()
+    schedule()
+    const mutations = new MutationObserver(() => {
+      watchControls()
+      schedule()
+    })
+    mutations.observe(map, { childList: true, subtree: true })
+    return () => {
+      if (frame !== 0) cancelAnimationFrame(frame)
+      resize.disconnect()
+      mutations.disconnect()
+    }
+  }, [])
 
   // TEMP until F10 urlSync
   useEffect(() => {
@@ -237,7 +284,7 @@ export function WorkspacePage() {
         </header>
       )}
       <div className="ws-body">
-        <div className="ws-map">
+        <div ref={mapRef} className="ws-map">
           <Suspense fallback={<div className="h-full w-full bg-black" aria-label="Loading sky map" />}>
             <AladinMap
               ra={view.ra}

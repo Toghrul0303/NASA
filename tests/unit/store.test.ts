@@ -20,7 +20,12 @@ function fake(slug: string, ra = 10, dec = 20): Dataset {
       center: { ra_deg: ra, dec_deg: dec, t_mid_mjd: 0 },
       status: 'complete',
     },
-  } as Dataset
+    frames: {
+      frames: [{ index: 0, detector: 1, lambda_um: 1.25, bandwidth_um: 0.05 }],
+      epochs: [{ epoch_id: 0, detectors: [1] }],
+    },
+    coadds: { coadds: [] },
+  } as unknown as Dataset
 }
 
 interface Pending {
@@ -42,11 +47,11 @@ function pending(): Pending {
 describe('workspace store', () => {
   beforeEach(() => {
     fetchMock.mockReset()
-    useWorkspaceStore.setState({
+    useWorkspaceStore.setState((state) => ({
       view: { ra: 0, dec: 0, fov: 0.5 },
-      tool: { tool: 'blink', frame: { zoom: 4, panX: 3, panY: 2 } },
+      tool: { ...state.tool, tool: 'blink', frame: { zoom: 4, panX: 3, panY: 2 } },
       dataset: { slug: null, status: 'idle', dataset: null, errorCode: null },
-    })
+    }))
   })
 
   it('stores a ContractError code and ignores a stale load', async () => {
@@ -82,5 +87,56 @@ describe('workspace store', () => {
     await useWorkspaceStore.getState().loadDataset('missing')
     expect(useWorkspaceStore.getState().dataset.status).toBe('error')
     expect(useWorkspaceStore.getState().dataset.errorCode).toBe('not_found')
+  })
+
+  it('resets blink from the dataset and can open one frame in the set', async () => {
+    const withFrames = fake('barnard')
+    withFrames.frames.frames = [
+      { index: 0, detector: 1, lambda_um: 1, bandwidth_um: 0.1 },
+      { index: 1, detector: 2, lambda_um: 1, bandwidth_um: 0.1 },
+      { index: 2, detector: 2, lambda_um: 1, bandwidth_um: 0.1 },
+      { index: 3, detector: 2, lambda_um: 5, bandwidth_um: 0.1 },
+    ] as Dataset['frames']['frames']
+    fetchMock.mockResolvedValueOnce(withFrames)
+
+    await useWorkspaceStore.getState().loadDataset('barnard')
+    const ready = useWorkspaceStore.getState().tool.blink
+    expect(ready.detector).toBe(2)
+    expect(ready.lambda0).toBe(1)
+    expect(ready.k).toBe(1)
+    expect(ready.itemIndex).toBe(0)
+    expect(ready.playing).toBe(false)
+    expect(ready.loop).toBe(true)
+    expect(ready.spacing).toBe('frame')
+    expect(ready.overlays).toEqual({
+      predicted: true,
+      apertures: true,
+      annulus: false,
+      centroid: true,
+      trail: false,
+    })
+
+    useWorkspaceStore.getState().setBlink({ k: 9, fps: 40, itemIndex: 5, overlays: { trail: true } })
+    const patched = useWorkspaceStore.getState().tool.blink
+    expect(patched.k).toBe(3)
+    expect(patched.fps).toBe(10)
+    expect(patched.itemIndex).toBe(1)
+    expect(patched.overlays.trail).toBe(true)
+    expect(patched.overlays.predicted).toBe(true)
+
+    useWorkspaceStore.getState().setBlink({ loop: false })
+    useWorkspaceStore.getState().stepBlink(1)
+    expect(useWorkspaceStore.getState().tool.blink.itemIndex).toBe(1)
+    useWorkspaceStore.getState().setBlink({ loop: true })
+    useWorkspaceStore.getState().stepBlink(1)
+    expect(useWorkspaceStore.getState().tool.blink.itemIndex).toBe(0)
+
+    useWorkspaceStore.getState().openFrameInBlink(3)
+    const opened = useWorkspaceStore.getState()
+    expect(opened.tool.tool).toBe('blink')
+    expect(opened.tool.blink.mode).toBe('frames')
+    expect(opened.tool.blink.detector).toBe(2)
+    expect(opened.tool.blink.lambda0).toBe(5)
+    expect(opened.tool.blink.itemIndex).toBe(0)
   })
 })

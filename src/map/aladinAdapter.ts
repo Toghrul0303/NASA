@@ -5,7 +5,8 @@
 import aladinLite from 'aladin-lite'
 import { hipsSurveyCandidates } from '../config/env'
 import { FOV_MAX_DEG, FOV_MIN_DEG } from '../config/constants'
-import { gaiaCopy, gaiaPositionAtEpoch, mapCopy } from '../config/copy'
+import { gaiaPositionAtEpoch } from '../config/copy'
+import { gaiaPopup } from './gaiaOverlay'
 
 /** Keep aligned with `cubeLayer`'s 10 s probe. The adapter does not import that module. */
 const CUBE_SLICE_TIMEOUT_MS = 10_000
@@ -260,29 +261,6 @@ function copyVertices(poly: readonly (readonly [number, number])[]): Array<[numb
     vertices.push([ra, dec])
   }
   return vertices
-}
-
-function escapeHtml(value: string): string {
-  return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;')
-}
-
-function formatNullable(value: number | null): string {
-  if (value === null || !Number.isFinite(value)) return gaiaCopy.notAvailable
-  return String(value)
-}
-
-function gaiaPopup(source: GaiaMapSource): { title: string; html: string } {
-  const title = gaiaPositionAtEpoch(source.refEpochYear)
-  const sourceId = escapeHtml(source.sourceId)
-  const html = [
-    `<p>${escapeHtml(title)}</p>`,
-    `<p>source_id ${sourceId} <button type="button" data-gaia-copy="${sourceId}">${escapeHtml(mapCopy.copySourceId)}</button></p>`,
-    `<p>phot_g_mean_mag ${escapeHtml(formatNullable(source.photGMeanMag))}</p>`,
-    `<p>parallax_mas ${escapeHtml(formatNullable(source.parallaxMas))}</p>`,
-    `<p>proper motion ${escapeHtml(formatNullable(source.pmraMasYr))}, ${escapeHtml(formatNullable(source.pmdecMasYr))}</p>`,
-    `<p>separation_arcsec ${escapeHtml(formatNullable(source.separationArcsec))}</p>`,
-  ].join('')
-  return { title, html }
 }
 
 /** Screen-pixel marker: 8 px, or 12 px plus a ring for the primary. §8.3. */

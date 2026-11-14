@@ -1,8 +1,9 @@
 /**
  * Blink vector overlays in overlay-pixel space. FRONTEND_SPEC §10.5.
  * Stroke widths are multiplied by `cssPixel` so they stay constant on screen.
- * The Gaia diamond is F8 and is not drawn here.
+ * The Gaia diamond is the delivered predicted-track point for this epoch.
  */
+import { gaiaCopy } from '../config/copy'
 import type { BlinkOverlays } from '../state/store'
 import type { FrameOverlayHelpers } from './FrameCanvas'
 
@@ -19,6 +20,9 @@ export interface BlinkDraw {
   annulus: readonly [number, number] | null
   centroid: { x: number; y: number; err: number } | null
   trail: readonly GridMark[]
+  /** Predicted-track point for the current epoch. Null skips the diamond. */
+  gaia: GridMark | null
+  gaiaColor: string
 }
 
 const PREDICTED = '#e4f222'
@@ -51,6 +55,15 @@ function trace(
 function circle(ctx: CanvasRenderingContext2D, u: number, v: number, radius: number): void {
   ctx.beginPath()
   ctx.arc(u, v, radius, 0, Math.PI * 2)
+}
+
+function diamond(ctx: CanvasRenderingContext2D, u: number, v: number, radius: number): void {
+  ctx.beginPath()
+  ctx.moveTo(u, v - radius)
+  ctx.lineTo(u + radius, v)
+  ctx.lineTo(u, v + radius)
+  ctx.lineTo(u - radius, v)
+  ctx.closePath()
 }
 
 function crosshair(ctx: CanvasRenderingContext2D, u: number, v: number, arm: number, gap: number): void {
@@ -113,6 +126,25 @@ export function drawBlinkOverlay(ctx: CanvasRenderingContext2D, helpers: FrameOv
       ctx.fillText('predicted', labelX, labelY)
       ctx.restore()
     }
+  }
+
+  const gaia = draw.show.gaia ? draw.gaia : null
+  if (gaia) {
+    const { u, v } = gridToOverlay(gaia.x, gaia.y)
+    const color = draw.gaiaColor
+    trace(ctx, cssPixel, color, false, () => diamond(ctx, u, v, 4))
+    const labelX = u + 8 * cssPixel
+    const labelY = v + 10 * cssPixel
+    ctx.save()
+    ctx.font = `${12 * cssPixel}px ui-sans-serif, system-ui, sans-serif`
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'middle'
+    ctx.lineWidth = 3 * cssPixel
+    ctx.strokeStyle = HALO
+    ctx.strokeText(gaiaCopy.predictedMarker, labelX, labelY)
+    ctx.fillStyle = color
+    ctx.fillText(gaiaCopy.predictedMarker, labelX, labelY)
+    ctx.restore()
   }
 
   const centroid = draw.show.centroid ? draw.centroid : null

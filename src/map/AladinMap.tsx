@@ -1,7 +1,9 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { env } from '../config/env'
 import { cubeBandReadout, cubeWavelengthLabel, mapCopy } from '../config/copy'
+import type { Gaia } from '../contract/types'
 import { clampMapView, createMapAdapter, type MapSurface, type MapView } from './aladinAdapter'
+import { syncGaiaOverlay } from './gaiaOverlay'
 
 type CubeModule = typeof import('./cubeLayer')
 
@@ -25,6 +27,14 @@ export interface AladinMapProps {
   targets?: readonly MapTargetOption[]
   /** Present once a dataset is loaded. `meta.channels` is constant, so any dataset can supply it. */
   cubeWavelength?: CubeWavelength | null
+  /** Grid boundary in degrees. Null clears the polygon. */
+  footprint?: Array<[number, number]> | null
+  /** Delivered Gaia document. Null clears the overlay. */
+  gaia?: Gaia | null
+  /** Layer switch. On by default only when `query_status` is `ok`. */
+  gaiaLayerEnabled?: boolean
+  gaiaLayerOn?: boolean
+  onGaiaLayerChange?: (on: boolean) => void
   onViewChange?: (view: MapView) => void
   onClick?: (ra: number, dec: number) => void
   onTargetSelect?: (target: MapTargetOption) => void
@@ -48,6 +58,11 @@ export function AladinMap({
   survey,
   targets = [],
   cubeWavelength = null,
+  footprint = null,
+  gaia = null,
+  gaiaLayerEnabled = false,
+  gaiaLayerOn = false,
+  onGaiaLayerChange,
   onViewChange,
   onClick,
   onTargetSelect,
@@ -70,6 +85,8 @@ export function AladinMap({
   const frameRef = useRef<HTMLDivElement>(null)
   const hostRef = useRef<HTMLDivElement>(null)
   const adapterRef = useRef<MapSurface | null>(null)
+  const overlayRef = useRef({ footprint, gaia, showGaia: gaiaLayerEnabled && gaiaLayerOn })
+  overlayRef.current = { footprint, gaia, showGaia: gaiaLayerEnabled && gaiaLayerOn }
   const [status, setStatus] = useState<'loading' | 'ready' | 'fallback'>('loading')
   const [cube, setCube] = useState<CubeModule | null>(null)
   const [surveyUnavailable, setSurveyUnavailable] = useState(false)
@@ -110,6 +127,9 @@ export function AladinMap({
       })
       .then(() => {
         if (cancelled) return
+        const overlay = overlayRef.current
+        adapter.setFootprint(overlay.footprint)
+        syncGaiaOverlay(adapter, overlay.gaia, overlay.showGaia)
         setStatus('ready')
       })
       .catch((error: unknown) => {
@@ -153,6 +173,18 @@ export function AladinMap({
     }
     if (Math.abs(current.fov - view.fov) >= 1e-5) adapter.setFov(view.fov)
   }, [view.ra, view.dec, view.fov, status])
+
+  useEffect(() => {
+    const adapter = adapterRef.current
+    if (!adapter || status !== 'ready') return
+    adapter.setFootprint(footprint)
+  }, [footprint, status])
+
+  useEffect(() => {
+    const adapter = adapterRef.current
+    if (!adapter || status !== 'ready') return
+    syncGaiaOverlay(adapter, gaia, gaiaLayerEnabled && gaiaLayerOn)
+  }, [gaia, gaiaLayerEnabled, gaiaLayerOn, status])
 
   useEffect(() => {
     if (status !== 'ready' || !env.featureG1Cube) return
@@ -206,6 +238,19 @@ export function AladinMap({
           >
             Retry
           </button>
+        </div>
+      ) : null}
+      {status === 'ready' ? (
+        <div className="ws-map-toolbar">
+          <label className="ws-map-layer">
+            <input
+              type="checkbox"
+              checked={gaiaLayerEnabled && gaiaLayerOn}
+              disabled={!gaiaLayerEnabled}
+              onChange={(event) => onGaiaLayerChange?.(event.target.checked)}
+            />
+            {mapCopy.gaiaLayer}
+          </label>
         </div>
       ) : null}
       {status === 'ready' && cube ? (

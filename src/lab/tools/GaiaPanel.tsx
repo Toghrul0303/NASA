@@ -379,13 +379,7 @@ function GaiaPanelView({
 
       {unavailable ? null : (
         <span className="ws-tip-anchor">
-          <button
-            type="button"
-            className="ws-pill"
-            aria-disabled="true"
-            title={gaiaCopy.rerunDisabledTooltip}
-            onClick={(event) => event.preventDefault()}
-          >
+          <button type="button" className="ws-pill" disabled title={gaiaCopy.rerunDisabledTooltip}>
             {gaiaCopy.rerunWithProperMotion}
           </button>
           <span className="ws-tip" role="tooltip">

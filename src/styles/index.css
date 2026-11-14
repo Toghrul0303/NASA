@@ -1819,3 +1819,29 @@ html.light .ws-pill:hover:not(:disabled) {
 .ws-tip-anchor:focus-within .ws-tip {
   display: block;
 }
+
+.ws-map-toolbar {
+  position: absolute;
+  z-index: 5;
+  top: calc(var(--aladin-chrome-bottom) + var(--map-control-gap));
+  left: var(--aladin-inset);
+  pointer-events: auto;
+}
+
+.ws-map-layer {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  background: rgba(10, 10, 13, 0.85);
+  color: #fff;
+  font-size: 12px;
+}
+
+.ws-map-layer input:disabled + span,
+.ws-map-layer:has(input:disabled) {
+  opacity: 0.45;
+}

@@ -59,6 +59,7 @@ export interface BlinkOverlays {
   annulus: boolean
   centroid: boolean
   trail: boolean
+  gaia: boolean
 }
 
 export interface BlinkState {
@@ -107,12 +108,15 @@ interface WorkspaceStore {
   view: ViewState
   /** Latest source the Gaia table asked the canvas to centre on. A new object each time. */
   frameFocus: FrameFocus | null
+  /** Gaia map layer. Turned on when a dataset with `query_status == "ok"` loads. */
+  gaiaLayer: boolean
   tool: ToolState
   dataset: DatasetState
   job: JobState
   ui: UiState
   setView: (view: ViewState) => void
   setFrameFocus: (focus: FrameFocus) => void
+  setGaiaLayer: (on: boolean) => void
   setTool: (tool: ToolId) => void
   setFrame: (frame: FrameViewport) => void
   setBlink: (partial: BlinkPatch) => void
@@ -136,6 +140,7 @@ const DEFAULT_OVERLAYS: BlinkOverlays = {
   annulus: false,
   centroid: true,
   trail: false,
+  gaia: true,
 }
 
 function clampNumber(value: number, min: number, max: number, fallback: number): number {
@@ -211,6 +216,7 @@ applyTheme(bootTheme)
 export const useWorkspaceStore = create<WorkspaceStore>()((set) => ({
   view: { ra: 0, dec: 0, fov: DEFAULT_FOV_DEG },
   frameFocus: null,
+  gaiaLayer: false,
   tool: { tool: 'map', frame: initialFrame(), blink: blinkForFrames([], prefersReducedMotion()) },
   dataset: { slug: null, status: 'idle', dataset: null, errorCode: null },
   job: { status: 'idle' },
@@ -222,6 +228,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set) => ({
   },
   setView: (view) => set({ view }),
   setFrameFocus: (focus) => set({ frameFocus: { x: focus.x, y: focus.y } }),
+  setGaiaLayer: (on) => set({ gaiaLayer: on }),
   setTool: (tool) => set((state) => ({ tool: { ...state.tool, tool } })),
   setFrame: (frame) => set((state) => ({ tool: { ...state.tool, frame } })),
   setBlink: (partial) =>
@@ -288,6 +295,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set) => ({
     set((state) => ({
       dataset: { slug, status: 'loading', dataset: null, errorCode: null },
       frameFocus: null,
+      gaiaLayer: false,
       tool: {
         ...state.tool,
         frame: initialFrame(),
@@ -301,6 +309,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set) => ({
       set((state) => ({
         dataset: { slug, status: 'ready', dataset, errorCode: null },
         frameFocus: null,
+        gaiaLayer: dataset.gaia?.query_status === 'ok',
         view: {
           ...state.view,
           ra: dataset.meta.center.ra_deg,

@@ -106,7 +106,13 @@ export const gaiaCopy = {
   comparisonPlotLabel: 'Proper motion comparison of Gaia and the measured motion',
   openGaiaCheck: 'Open Gaia check',
   centreOnSource: 'Centre map and canvas on this source',
+  predictedMarker: 'Gaia (predicted)',
 } as const
+
+/** Predicted-track point label. §8.3. `epoch_id` is the delivered track entry. */
+export function gaiaEpochLabel(epochId: number): string {
+  return `epoch ${epochId}`
+}
 
 /**
  * Null measured-motion sentence. The numbers are read from

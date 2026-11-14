@@ -114,6 +114,7 @@ describe('workspace store', () => {
       annulus: false,
       centroid: true,
       trail: false,
+      gaia: true,
     })
 
     useWorkspaceStore.getState().setBlink({ k: 9, fps: 40, itemIndex: 5, overlays: { trail: true } })

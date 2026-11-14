@@ -3,6 +3,7 @@
  * Stretch limits are computed once per set key, from plane 0 of every item.
  */
 import { useCallback, useEffect, useMemo, type KeyboardEvent } from 'react'
+import { mapCopy } from '../../config/copy'
 import type { Coadd, Frame } from '../../contract/types'
 import {
   blinkLimits,
@@ -20,6 +21,7 @@ import type { StretchLimits } from '../../core/stretch'
 import { propagate, worldToPixel } from '../../core/wcs'
 import type { Dataset } from '../../data/dataset'
 import { useWorkspaceStore, type BlinkOverlays } from '../../state/store'
+import { verdictColor } from '../../ui/verdictColor'
 import { FrameCanvas, type FrameOverlayHelpers } from '../FrameCanvas'
 import { drawBlinkOverlay, type GridMark } from '../blinkOverlay'
 import { DetectorPicker } from '../widgets/DetectorPicker'
@@ -36,6 +38,7 @@ const OVERLAYS: readonly { key: keyof BlinkOverlays; label: string }[] = [
   { key: 'annulus', label: 'Annulus' },
   { key: 'centroid', label: 'Centroid' },
   { key: 'trail', label: 'Trail' },
+  { key: 'gaia', label: mapCopy.gaiaLayer },
 ]
 
 function cachedLimits(dataset: object, key: string, build: () => StretchLimits): StretchLimits {
@@ -236,9 +239,22 @@ function BlinkReady({ dataset }: { dataset: Dataset }) {
     return { x: point.centroid_x, y: point.centroid_y, err: point.centroid_err_px }
   }, [currentFrame, dataset])
 
+  const epochId = currentFrame?.epoch_id ?? currentCoadd?.epoch_id ?? null
+  const gaiaPoint = useMemo(() => {
+    const gaia = dataset.gaia
+    if (gaia.query_status !== 'ok' || epochId === null) return null
+    const primary = gaia.sources.find((source) => source.is_primary)
+    const track = primary?.predicted_track
+    if (!track) return null
+    const entry = track.find((point) => point.epoch_id === epochId)
+    if (!entry) return null
+    return { x: entry.x, y: entry.y }
+  }, [dataset, epochId])
+
   const show = blink.overlays
   const apertureRadii = dataset.sed.aperture_radii_px
   const annulus = dataset.sed.annulus_px
+  const gaiaStroke = verdictColor(dataset.gaia.verdict)
   const drawOverlay = useCallback(
     (ctx: CanvasRenderingContext2D, helpers: FrameOverlayHelpers) => {
       drawBlinkOverlay(ctx, helpers, {
@@ -248,9 +264,11 @@ function BlinkReady({ dataset }: { dataset: Dataset }) {
         annulus,
         centroid,
         trail,
+        gaia: gaiaPoint,
+        gaiaColor: gaiaStroke,
       })
     },
-    [show, predicted, apertureRadii, annulus, centroid, trail],
+    [show, predicted, apertureRadii, annulus, centroid, trail, gaiaPoint, gaiaStroke],
   )
 
   useEffect(() => {

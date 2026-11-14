@@ -11,6 +11,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import type { MapTargetOption } from '../map/AladinMap'
+import { footprintPolygon } from '../map/footprint'
 import type { Dataset } from '../data/dataset'
 import { loadRegistry, type RegistryEntry } from '../data/registry'
 import { useWorkspaceStore } from '../state/store'
@@ -79,6 +80,8 @@ function mapTargets(entries: readonly RegistryEntry[]): MapTargetOption[] {
 export function WorkspacePage() {
   const view = useWorkspaceStore((state) => state.view)
   const setView = useWorkspaceStore((state) => state.setView)
+  const gaiaLayer = useWorkspaceStore((state) => state.gaiaLayer)
+  const setGaiaLayer = useWorkspaceStore((state) => state.setGaiaLayer)
   const tool = useWorkspaceStore((state) => state.tool.tool)
   const setTool = useWorkspaceStore((state) => state.setTool)
   const datasetState = useWorkspaceStore((state) => state.dataset)
@@ -175,6 +178,8 @@ export function WorkspacePage() {
 
   const dataset = datasetState.dataset
   const ready = datasetState.status === 'ready' && dataset !== null
+  const footprint = useMemo(() => (ready && dataset ? footprintPolygon(dataset.meta.grid) : null), [ready, dataset])
+  const gaia = ready && dataset ? dataset.gaia : null
   const labOpen = datasetState.status !== 'ready' || tool !== 'map'
   const options = useMemo(() => {
     const slug = datasetState.slug
@@ -371,6 +376,11 @@ export function WorkspacePage() {
               dec={view.dec}
               fov={view.fov}
               targets={mapTargets(options)}
+              footprint={footprint}
+              gaia={gaia}
+              gaiaLayerEnabled={gaia?.query_status === 'ok'}
+              gaiaLayerOn={gaiaLayer}
+              onGaiaLayerChange={setGaiaLayer}
               onViewChange={setView}
               onTargetSelect={(target) => {
                 void loadDataset(target.id)

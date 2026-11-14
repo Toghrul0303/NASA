@@ -37,6 +37,17 @@ export interface GaiaMapSource {
   separationArcsec: number
 }
 
+/**
+ * One vertex of the primary predicted track, in array order.
+ * `label` is `epoch {epoch_id}`. Aladin polylines have no per-vertex text,
+ * so each vertex is also a catalog source whose `label` column is drawn.
+ */
+export interface GaiaTrackPoint {
+  raDeg: number
+  decDeg: number
+  label: string
+}
+
 /** HiPS cube layer. `channel` is the cube frame index (DC §3.3). `null` restores the base survey. */
 export interface CubeConfig {
   url: string
@@ -52,7 +63,7 @@ export interface MapAdapter {
   onClick(cb: (ra: number, dec: number) => void): () => void
   setFootprint(poly: Array<[number, number]> | null): void
   setGaiaSources(src: GaiaMapSource[]): void
-  setGaiaTrack(track: Array<[number, number]> | null): void
+  setGaiaTrack(track: readonly GaiaTrackPoint[] | null): void
   setCube(cfg: CubeConfig | null): Promise<void>
   destroy(): void
 }
@@ -230,6 +241,16 @@ function isClickEvent(event: unknown): event is AladinClick {
   return typeof record.x === 'number' && typeof record.y === 'number'
 }
 
+function finiteTrack(track: readonly GaiaTrackPoint[] | null): GaiaTrackPoint[] {
+  if (!track) return []
+  const points: GaiaTrackPoint[] = []
+  for (const point of track) {
+    if (!Number.isFinite(point.raDeg) || !Number.isFinite(point.decDeg)) continue
+    points.push(point)
+  }
+  return points
+}
+
 function copyVertices(poly: readonly (readonly [number, number])[]): Array<[number, number]> {
   const vertices: Array<[number, number]> = []
   for (const pair of poly) {
@@ -321,6 +342,7 @@ class AladinLiteAdapter implements MapSurface {
   private readonly clickListeners = new Set<(ra: number, dec: number) => void>()
   private footprint: AladinOverlay | null = null
   private track: AladinOverlay | null = null
+  private trackCatalog: AladinCatalog | null = null
   private gaiaCatalog: AladinCatalog | null = null
   private cubeLayer: AladinHiPS | null = null
   private cubeUrl: string | null = null
@@ -491,6 +513,10 @@ class AladinLiteAdapter implements MapSurface {
         // Aladin hides non-footprint sources when this stays at its default.
         onlyFootprints: false,
         shape: drawGaiaMarker,
+        displayLabel: true,
+        labelColumn: 'marker_label',
+        labelColor: '#ffffff',
+        labelFont: '11px sans-serif',
       })
       aladin.addCatalog(this.gaiaCatalog)
     }
@@ -507,6 +533,7 @@ class AladinLiteAdapter implements MapSurface {
           source_id: source.sourceId,
           is_primary: source.isPrimary,
           color,
+          marker_label: gaiaPositionAtEpoch(source.refEpochYear),
         },
         {
           marker: true,
@@ -522,18 +549,51 @@ class AladinLiteAdapter implements MapSurface {
     catalog.addSources(markers)
   }
 
-  setGaiaTrack(track: Array<[number, number]> | null): void {
+  setGaiaTrack(track: readonly GaiaTrackPoint[] | null): void {
     const aladin = this.aladin
     if (!aladin) return
-    const vertices = track === null ? [] : copyVertices(track)
-    if (vertices.length < 2) {
+    const points = finiteTrack(track)
+    if (points.length === 0) {
       this.detachOverlay(this.track)
       this.track = null
+      this.detachOverlay(this.trackCatalog)
+      this.trackCatalog = null
       return
     }
-    const overlay = this.ensureOverlay(aladin, 'track')
-    overlay.removeAll()
-    overlay.add(A.polyline(vertices, { color: TRACK_COLOR, lineWidth: 2 }))
+    if (points.length >= 2) {
+      const overlay = this.ensureOverlay(aladin, 'track')
+      overlay.removeAll()
+      overlay.add(
+        A.polyline(
+          points.map((point) => [point.raDeg, point.decDeg]),
+          { color: TRACK_COLOR, lineWidth: 2 },
+        ),
+      )
+    } else {
+      this.detachOverlay(this.track)
+      this.track = null
+    }
+    if (!this.trackCatalog) {
+      this.trackCatalog = A.catalog({
+        name: 'Gaia track',
+        color: TRACK_COLOR,
+        sourceSize: 6,
+        onlyFootprints: false,
+        shape: 'circle',
+        displayLabel: true,
+        labelColumn: 'label',
+        labelColor: TRACK_COLOR,
+        labelFont: '11px sans-serif',
+      })
+      aladin.addCatalog(this.trackCatalog)
+    }
+    const catalog = this.trackCatalog
+    catalog.removeAll()
+    catalog.addSources(
+      points.map((point) =>
+        A.source(point.raDeg, point.decDeg, { label: point.label }, { marker: false }),
+      ),
+    )
   }
 
   async setCube(cfg: CubeConfig | null): Promise<void> {
@@ -584,6 +644,7 @@ class AladinLiteAdapter implements MapSurface {
     this.aladin = null
     this.footprint = null
     this.track = null
+    this.trackCatalog = null
     this.gaiaCatalog = null
     this.cubeLayer = null
     this.cubeUrl = null

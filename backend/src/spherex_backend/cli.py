@@ -20,6 +20,7 @@ from spherex_backend.contract_check import (
 )
 from spherex_backend.errors import ContractError
 
+
 def _typer() -> typer.Typer:
     return typer.Typer(
         add_completion=False,
@@ -379,10 +380,46 @@ def build_coord(
     fetch_budget: FetchBudgetOpt = None,
     reset_breaker: ResetBreakerOpt = False,
 ) -> None:
-    """Run the Tier 2 pipeline for one coordinate (not implemented yet)."""
-    _ = (ra, dec, size, name, pmra, pmdec, epoch, force)
-    _ = (max_frames, cache_only, fetch_budget, reset_breaker)
-    _unavailable(ctx, "build-coord")
+    """Run the Tier 2 pipeline synchronously for one coordinate; prints the slug."""
+    from spherex_backend import fetch
+    from spherex_backend.api import ApiError, validate_request
+    from spherex_backend.models import PipelineError
+    from spherex_backend.pipeline import run_pipeline
+
+    loaded = _settings(ctx)
+    body: dict[str, object] = {"ra_deg": ra, "dec_deg": dec, "force_refresh": force}
+    for key, value in (
+        ("size_deg", size),
+        ("name", name),
+        ("pmra_mas_yr", pmra),
+        ("pmdec_mas_yr", pmdec),
+        ("coord_epoch_year", epoch),
+    ):
+        if value is not None:
+            body[key] = value
+    try:
+        request = validate_request(json.dumps(body).encode("utf-8"))
+    except ApiError as exc:
+        _fail(2, "; ".join(f"{d['field']}: {d['issue']}" for d in exc.details) or exc.message)
+    target = request.target()
+    if (loaded.paths.data_dir / target.slug / "meta.json").is_file() and not force:
+        typer.echo(f"{target.slug}: exists, skipped (use --force)")
+        typer.echo(target.slug)
+        return
+    if reset_breaker:
+        fetch.BREAKER.configure(loaded.settings.irsa.breaker, fetch.breaker_path(loaded))
+        fetch.BREAKER.reset()
+    run_loaded = _with_run_options(loaded, "tier2", max_frames, cache_only, fetch_budget)
+    try:
+        out = run_pipeline(target, _ConsoleSink(target.slug), None, loaded=run_loaded)
+    except PipelineError as exc:
+        status = {"no_coverage": 5, "upstream_unavailable": 4}.get(exc.code, 3)
+        _fail(status, f"{target.slug}: FAILED {exc.code}: {exc}")
+    typer.echo(
+        f"{out.slug}: {out.result_status} frames={out.n_frames} epochs={out.n_epochs} "
+        f"failed={out.n_failed_fetches} seconds={out.elapsed_s:.1f}"
+    )
+    typer.echo(out.slug)
 
 
 @app.command("update")

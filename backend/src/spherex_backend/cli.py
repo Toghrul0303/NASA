@@ -150,8 +150,20 @@ def serve(
     port: Annotated[int | None, typer.Option("--port")] = None,
 ) -> None:
     """Start Uvicorn with one worker."""
-    _ = (host, port)
-    _unavailable(ctx, "serve")
+    import uvicorn
+
+    from spherex_backend.api import create_app
+
+    loaded = _settings(ctx)
+    server = loaded.settings.server
+    uvicorn.run(
+        create_app(loaded),
+        host=host or server.host,
+        port=port or server.port,
+        workers=1,
+        log_config=None,  # keep the JSON-lines logging configured by the CLI
+        log_level=server.log_level.lower(),
+    )
 
 
 @contract_app.command("extract")

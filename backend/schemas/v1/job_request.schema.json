@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spherex-sky-explorer/schema/v1/job_request.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ra_deg",
+    "dec_deg"
+  ],
+  "properties": {
+    "ra_deg": {
+      "$ref": "common.schema.json#/$defs/ra_deg"
+    },
+    "dec_deg": {
+      "$ref": "common.schema.json#/$defs/dec_deg"
+    },
+    "size_deg": {
+      "$ref": "common.schema.json#/$defs/size_deg",
+      "default": 0.1
+    },
+    "name": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 120,
+      "default": null
+    },
+    "pmra_mas_yr": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "default": null
+    },
+    "pmdec_mas_yr": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "default": null
+    },
+    "coord_epoch_year": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 1900,
+      "maximum": 2100,
+      "default": null
+    },
+    "force_refresh": {
+      "type": "boolean",
+      "default": false
+    }
+  }
+}

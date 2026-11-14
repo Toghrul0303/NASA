@@ -1,0 +1,4 @@
+# Demo pre-warm list. One coordinate per line: ra dec [name...]
+# Run only while IRSA answers. See docs/RUNBOOK.md before demo day.
+# This line omits proper motion, so it is NOT data/c-a55d19970b4b8fd7.
+133.795129 -7.245147 WISE 0855 coord

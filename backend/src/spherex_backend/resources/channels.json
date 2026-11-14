@@ -1,0 +1,716 @@
+[
+  {
+    "channel": 0,
+    "band": 1,
+    "band_channel": 1,
+    "lambda_um": 0.753,
+    "bandwidth_um": 0.018
+  },
+  {
+    "channel": 1,
+    "band": 1,
+    "band_channel": 2,
+    "lambda_um": 0.771,
+    "bandwidth_um": 0.019
+  },
+  {
+    "channel": 2,
+    "band": 1,
+    "band_channel": 3,
+    "lambda_um": 0.79,
+    "bandwidth_um": 0.019
+  },
+  {
+    "channel": 3,
+    "band": 1,
+    "band_channel": 4,
+    "lambda_um": 0.809,
+    "bandwidth_um": 0.02
+  },
+  {
+    "channel": 4,
+    "band": 1,
+    "band_channel": 5,
+    "lambda_um": 0.828,
+    "bandwidth_um": 0.02
+  },
+  {
+    "channel": 5,
+    "band": 1,
+    "band_channel": 6,
+    "lambda_um": 0.848,
+    "bandwidth_um": 0.021
+  },
+  {
+    "channel": 6,
+    "band": 1,
+    "band_channel": 7,
+    "lambda_um": 0.868,
+    "bandwidth_um": 0.022
+  },
+  {
+    "channel": 7,
+    "band": 1,
+    "band_channel": 8,
+    "lambda_um": 0.889,
+    "bandwidth_um": 0.023
+  },
+  {
+    "channel": 8,
+    "band": 1,
+    "band_channel": 9,
+    "lambda_um": 0.91,
+    "bandwidth_um": 0.023
+  },
+  {
+    "channel": 9,
+    "band": 1,
+    "band_channel": 10,
+    "lambda_um": 0.932,
+    "bandwidth_um": 0.024
+  },
+  {
+    "channel": 10,
+    "band": 1,
+    "band_channel": 11,
+    "lambda_um": 0.955,
+    "bandwidth_um": 0.025
+  },
+  {
+    "channel": 11,
+    "band": 1,
+    "band_channel": 12,
+    "lambda_um": 0.978,
+    "bandwidth_um": 0.026
+  },
+  {
+    "channel": 12,
+    "band": 1,
+    "band_channel": 13,
+    "lambda_um": 1.001,
+    "bandwidth_um": 0.026
+  },
+  {
+    "channel": 13,
+    "band": 1,
+    "band_channel": 14,
+    "lambda_um": 1.025,
+    "bandwidth_um": 0.027
+  },
+  {
+    "channel": 14,
+    "band": 1,
+    "band_channel": 15,
+    "lambda_um": 1.05,
+    "bandwidth_um": 0.028
+  },
+  {
+    "channel": 15,
+    "band": 1,
+    "band_channel": 16,
+    "lambda_um": 1.075,
+    "bandwidth_um": 0.029
+  },
+  {
+    "channel": 16,
+    "band": 1,
+    "band_channel": 17,
+    "lambda_um": 1.102,
+    "bandwidth_um": 0.03
+  },
+  {
+    "channel": 17,
+    "band": 2,
+    "band_channel": 1,
+    "lambda_um": 1.113,
+    "bandwidth_um": 0.026
+  },
+  {
+    "channel": 18,
+    "band": 2,
+    "band_channel": 2,
+    "lambda_um": 1.139,
+    "bandwidth_um": 0.027
+  },
+  {
+    "channel": 19,
+    "band": 2,
+    "band_channel": 3,
+    "lambda_um": 1.167,
+    "bandwidth_um": 0.028
+  },
+  {
+    "channel": 20,
+    "band": 2,
+    "band_channel": 4,
+    "lambda_um": 1.195,
+    "bandwidth_um": 0.029
+  },
+  {
+    "channel": 21,
+    "band": 2,
+    "band_channel": 5,
+    "lambda_um": 1.224,
+    "bandwidth_um": 0.03
+  },
+  {
+    "channel": 22,
+    "band": 2,
+    "band_channel": 6,
+    "lambda_um": 1.254,
+    "bandwidth_um": 0.03
+  },
+  {
+    "channel": 23,
+    "band": 2,
+    "band_channel": 7,
+    "lambda_um": 1.284,
+    "bandwidth_um": 0.031
+  },
+  {
+    "channel": 24,
+    "band": 2,
+    "band_channel": 8,
+    "lambda_um": 1.315,
+    "bandwidth_um": 0.032
+  },
+  {
+    "channel": 25,
+    "band": 2,
+    "band_channel": 9,
+    "lambda_um": 1.346,
+    "bandwidth_um": 0.032
+  },
+  {
+    "channel": 26,
+    "band": 2,
+    "band_channel": 10,
+    "lambda_um": 1.378,
+    "bandwidth_um": 0.033
+  },
+  {
+    "channel": 27,
+    "band": 2,
+    "band_channel": 11,
+    "lambda_um": 1.412,
+    "bandwidth_um": 0.034
+  },
+  {
+    "channel": 28,
+    "band": 2,
+    "band_channel": 12,
+    "lambda_um": 1.446,
+    "bandwidth_um": 0.035
+  },
+  {
+    "channel": 29,
+    "band": 2,
+    "band_channel": 13,
+    "lambda_um": 1.481,
+    "bandwidth_um": 0.036
+  },
+  {
+    "channel": 30,
+    "band": 2,
+    "band_channel": 14,
+    "lambda_um": 1.517,
+    "bandwidth_um": 0.037
+  },
+  {
+    "channel": 31,
+    "band": 2,
+    "band_channel": 15,
+    "lambda_um": 1.554,
+    "bandwidth_um": 0.038
+  },
+  {
+    "channel": 32,
+    "band": 2,
+    "band_channel": 16,
+    "lambda_um": 1.592,
+    "bandwidth_um": 0.039
+  },
+  {
+    "channel": 33,
+    "band": 2,
+    "band_channel": 17,
+    "lambda_um": 1.631,
+    "bandwidth_um": 0.039
+  },
+  {
+    "channel": 34,
+    "band": 3,
+    "band_channel": 1,
+    "lambda_um": 1.656,
+    "bandwidth_um": 0.039
+  },
+  {
+    "channel": 35,
+    "band": 3,
+    "band_channel": 2,
+    "lambda_um": 1.695,
+    "bandwidth_um": 0.041
+  },
+  {
+    "channel": 36,
+    "band": 3,
+    "band_channel": 3,
+    "lambda_um": 1.735,
+    "bandwidth_um": 0.042
+  },
+  {
+    "channel": 37,
+    "band": 3,
+    "band_channel": 4,
+    "lambda_um": 1.775,
+    "bandwidth_um": 0.043
+  },
+  {
+    "channel": 38,
+    "band": 3,
+    "band_channel": 5,
+    "lambda_um": 1.818,
+    "bandwidth_um": 0.045
+  },
+  {
+    "channel": 39,
+    "band": 3,
+    "band_channel": 6,
+    "lambda_um": 1.861,
+    "bandwidth_um": 0.046
+  },
+  {
+    "channel": 40,
+    "band": 3,
+    "band_channel": 7,
+    "lambda_um": 1.905,
+    "bandwidth_um": 0.047
+  },
+  {
+    "channel": 41,
+    "band": 3,
+    "band_channel": 8,
+    "lambda_um": 1.949,
+    "bandwidth_um": 0.048
+  },
+  {
+    "channel": 42,
+    "band": 3,
+    "band_channel": 9,
+    "lambda_um": 1.995,
+    "bandwidth_um": 0.049
+  },
+  {
+    "channel": 43,
+    "band": 3,
+    "band_channel": 10,
+    "lambda_um": 2.041,
+    "bandwidth_um": 0.051
+  },
+  {
+    "channel": 44,
+    "band": 3,
+    "band_channel": 11,
+    "lambda_um": 2.089,
+    "bandwidth_um": 0.052
+  },
+  {
+    "channel": 45,
+    "band": 3,
+    "band_channel": 12,
+    "lambda_um": 2.139,
+    "bandwidth_um": 0.054
+  },
+  {
+    "channel": 46,
+    "band": 3,
+    "band_channel": 13,
+    "lambda_um": 2.189,
+    "bandwidth_um": 0.055
+  },
+  {
+    "channel": 47,
+    "band": 3,
+    "band_channel": 14,
+    "lambda_um": 2.24,
+    "bandwidth_um": 0.056
+  },
+  {
+    "channel": 48,
+    "band": 3,
+    "band_channel": 15,
+    "lambda_um": 2.292,
+    "bandwidth_um": 0.057
+  },
+  {
+    "channel": 49,
+    "band": 3,
+    "band_channel": 16,
+    "lambda_um": 2.345,
+    "bandwidth_um": 0.058
+  },
+  {
+    "channel": 50,
+    "band": 3,
+    "band_channel": 17,
+    "lambda_um": 2.399,
+    "bandwidth_um": 0.059
+  },
+  {
+    "channel": 51,
+    "band": 4,
+    "band_channel": 1,
+    "lambda_um": 2.445,
+    "bandwidth_um": 0.058
+  },
+  {
+    "channel": 52,
+    "band": 4,
+    "band_channel": 2,
+    "lambda_um": 2.506,
+    "bandwidth_um": 0.073
+  },
+  {
+    "channel": 53,
+    "band": 4,
+    "band_channel": 3,
+    "lambda_um": 2.575,
+    "bandwidth_um": 0.074
+  },
+  {
+    "channel": 54,
+    "band": 4,
+    "band_channel": 4,
+    "lambda_um": 2.646,
+    "bandwidth_um": 0.076
+  },
+  {
+    "channel": 55,
+    "band": 4,
+    "band_channel": 5,
+    "lambda_um": 2.719,
+    "bandwidth_um": 0.078
+  },
+  {
+    "channel": 56,
+    "band": 4,
+    "band_channel": 6,
+    "lambda_um": 2.794,
+    "bandwidth_um": 0.079
+  },
+  {
+    "channel": 57,
+    "band": 4,
+    "band_channel": 7,
+    "lambda_um": 2.871,
+    "bandwidth_um": 0.084
+  },
+  {
+    "channel": 58,
+    "band": 4,
+    "band_channel": 8,
+    "lambda_um": 2.951,
+    "bandwidth_um": 0.086
+  },
+  {
+    "channel": 59,
+    "band": 4,
+    "band_channel": 9,
+    "lambda_um": 3.033,
+    "bandwidth_um": 0.089
+  },
+  {
+    "channel": 60,
+    "band": 4,
+    "band_channel": 10,
+    "lambda_um": 3.118,
+    "bandwidth_um": 0.091
+  },
+  {
+    "channel": 61,
+    "band": 4,
+    "band_channel": 11,
+    "lambda_um": 3.204,
+    "bandwidth_um": 0.093
+  },
+  {
+    "channel": 62,
+    "band": 4,
+    "band_channel": 12,
+    "lambda_um": 3.293,
+    "bandwidth_um": 0.094
+  },
+  {
+    "channel": 63,
+    "band": 4,
+    "band_channel": 13,
+    "lambda_um": 3.383,
+    "bandwidth_um": 0.096
+  },
+  {
+    "channel": 64,
+    "band": 4,
+    "band_channel": 14,
+    "lambda_um": 3.476,
+    "bandwidth_um": 0.098
+  },
+  {
+    "channel": 65,
+    "band": 4,
+    "band_channel": 15,
+    "lambda_um": 3.57,
+    "bandwidth_um": 0.099
+  },
+  {
+    "channel": 66,
+    "band": 4,
+    "band_channel": 16,
+    "lambda_um": 3.667,
+    "bandwidth_um": 0.102
+  },
+  {
+    "channel": 67,
+    "band": 4,
+    "band_channel": 17,
+    "lambda_um": 3.768,
+    "bandwidth_um": 0.103
+  },
+  {
+    "channel": 68,
+    "band": 5,
+    "band_channel": 1,
+    "lambda_um": 3.833,
+    "bandwidth_um": 0.035
+  },
+  {
+    "channel": 69,
+    "band": 5,
+    "band_channel": 2,
+    "lambda_um": 3.867,
+    "bandwidth_um": 0.036
+  },
+  {
+    "channel": 70,
+    "band": 5,
+    "band_channel": 3,
+    "lambda_um": 3.901,
+    "bandwidth_um": 0.036
+  },
+  {
+    "channel": 71,
+    "band": 5,
+    "band_channel": 4,
+    "lambda_um": 3.935,
+    "bandwidth_um": 0.036
+  },
+  {
+    "channel": 72,
+    "band": 5,
+    "band_channel": 5,
+    "lambda_um": 3.97,
+    "bandwidth_um": 0.036
+  },
+  {
+    "channel": 73,
+    "band": 5,
+    "band_channel": 6,
+    "lambda_um": 4.005,
+    "bandwidth_um": 0.036
+  },
+  {
+    "channel": 74,
+    "band": 5,
+    "band_channel": 7,
+    "lambda_um": 4.04,
+    "bandwidth_um": 0.037
+  },
+  {
+    "channel": 75,
+    "band": 5,
+    "band_channel": 8,
+    "lambda_um": 4.076,
+    "bandwidth_um": 0.037
+  },
+  {
+    "channel": 76,
+    "band": 5,
+    "band_channel": 9,
+    "lambda_um": 4.112,
+    "bandwidth_um": 0.037
+  },
+  {
+    "channel": 77,
+    "band": 5,
+    "band_channel": 10,
+    "lambda_um": 4.148,
+    "bandwidth_um": 0.037
+  },
+  {
+    "channel": 78,
+    "band": 5,
+    "band_channel": 11,
+    "lambda_um": 4.184,
+    "bandwidth_um": 0.037
+  },
+  {
+    "channel": 79,
+    "band": 5,
+    "band_channel": 12,
+    "lambda_um": 4.22,
+    "bandwidth_um": 0.037
+  },
+  {
+    "channel": 80,
+    "band": 5,
+    "band_channel": 13,
+    "lambda_um": 4.257,
+    "bandwidth_um": 0.037
+  },
+  {
+    "channel": 81,
+    "band": 5,
+    "band_channel": 14,
+    "lambda_um": 4.294,
+    "bandwidth_um": 0.037
+  },
+  {
+    "channel": 82,
+    "band": 5,
+    "band_channel": 15,
+    "lambda_um": 4.331,
+    "bandwidth_um": 0.037
+  },
+  {
+    "channel": 83,
+    "band": 5,
+    "band_channel": 16,
+    "lambda_um": 4.368,
+    "bandwidth_um": 0.038
+  },
+  {
+    "channel": 84,
+    "band": 5,
+    "band_channel": 17,
+    "lambda_um": 4.405,
+    "bandwidth_um": 0.038
+  },
+  {
+    "channel": 85,
+    "band": 6,
+    "band_channel": 1,
+    "lambda_um": 4.435,
+    "bandwidth_um": 0.035
+  },
+  {
+    "channel": 86,
+    "band": 6,
+    "band_channel": 2,
+    "lambda_um": 4.467,
+    "bandwidth_um": 0.036
+  },
+  {
+    "channel": 87,
+    "band": 6,
+    "band_channel": 3,
+    "lambda_um": 4.5,
+    "bandwidth_um": 0.035
+  },
+  {
+    "channel": 88,
+    "band": 6,
+    "band_channel": 4,
+    "lambda_um": 4.533,
+    "bandwidth_um": 0.036
+  },
+  {
+    "channel": 89,
+    "band": 6,
+    "band_channel": 5,
+    "lambda_um": 4.566,
+    "bandwidth_um": 0.036
+  },
+  {
+    "channel": 90,
+    "band": 6,
+    "band_channel": 6,
+    "lambda_um": 4.6,
+    "bandwidth_um": 0.037
+  },
+  {
+    "channel": 91,
+    "band": 6,
+    "band_channel": 7,
+    "lambda_um": 4.635,
+    "bandwidth_um": 0.036
+  },
+  {
+    "channel": 92,
+    "band": 6,
+    "band_channel": 8,
+    "lambda_um": 4.669,
+    "bandwidth_um": 0.037
+  },
+  {
+    "channel": 93,
+    "band": 6,
+    "band_channel": 9,
+    "lambda_um": 4.704,
+    "bandwidth_um": 0.037
+  },
+  {
+    "channel": 94,
+    "band": 6,
+    "band_channel": 10,
+    "lambda_um": 4.739,
+    "bandwidth_um": 0.037
+  },
+  {
+    "channel": 95,
+    "band": 6,
+    "band_channel": 11,
+    "lambda_um": 4.773,
+    "bandwidth_um": 0.036
+  },
+  {
+    "channel": 96,
+    "band": 6,
+    "band_channel": 12,
+    "lambda_um": 4.808,
+    "bandwidth_um": 0.036
+  },
+  {
+    "channel": 97,
+    "band": 6,
+    "band_channel": 13,
+    "lambda_um": 4.843,
+    "bandwidth_um": 0.037
+  },
+  {
+    "channel": 98,
+    "band": 6,
+    "band_channel": 14,
+    "lambda_um": 4.879,
+    "bandwidth_um": 0.038
+  },
+  {
+    "channel": 99,
+    "band": 6,
+    "band_channel": 15,
+    "lambda_um": 4.915,
+    "bandwidth_um": 0.038
+  },
+  {
+    "channel": 100,
+    "band": 6,
+    "band_channel": 16,
+    "lambda_um": 4.951,
+    "bandwidth_um": 0.037
+  },
+  {
+    "channel": 101,
+    "band": 6,
+    "band_channel": 17,
+    "lambda_um": 4.988,
+    "bandwidth_um": 0.037
+  }
+]

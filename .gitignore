@@ -1,3 +1,19 @@
+# Local override, deep-merged over backend/config.yaml
+backend/config.local.yaml
+
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Pipeline products and fetch cache
+/data/
+/cache/
+
+# Frontend
 node_modules
 dist
 .DS_Store

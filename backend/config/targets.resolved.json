@@ -1,0 +1,46 @@
+{
+  "barnards-star": {
+    "input_ra_deg": 269.44850252543836,
+    "input_dec_deg": 4.739420051112412,
+    "coord_epoch_year": 2016.0,
+    "pmra_mas_yr": -801.5509783684709,
+    "pmdec_mas_yr": 10362.394206546573,
+    "parallax_mas": 546.975939730948,
+    "pm_source": "gaia_dr3",
+    "pm_reference": "Gaia DR3",
+    "gaia_source_id": "4472832130942575872"
+  },
+  "eps-indi-b": {
+    "input_ra_deg": 331.07645259656397,
+    "input_dec_deg": -56.79381206688221,
+    "coord_epoch_year": 2016.0,
+    "pmra_mas_yr": 3981.97666296105,
+    "pmdec_mas_yr": -2466.8318147663504,
+    "parallax_mas": 270.6580324694526,
+    "pm_source": "gaia_dr3",
+    "pm_reference": "Gaia DR3",
+    "gaia_source_id": "6412596012146801152"
+  },
+  "rw-aur": {
+    "input_ra_deg": 76.9565443110343,
+    "input_dec_deg": 30.401316149887936,
+    "coord_epoch_year": 2016.0,
+    "pmra_mas_yr": 4.90603392110511,
+    "pmdec_mas_yr": -24.577534567492915,
+    "parallax_mas": 5.454096456582266,
+    "pm_source": "gaia_dr3",
+    "pm_reference": "Gaia DR3",
+    "gaia_source_id": "156430817820015232"
+  },
+  "r-dra": {
+    "input_ra_deg": 248.1673783672889,
+    "input_dec_deg": 66.75500674547219,
+    "coord_epoch_year": 2016.0,
+    "pmra_mas_yr": -20.642811719160797,
+    "pmdec_mas_yr": 6.148818852711324,
+    "parallax_mas": 1.2509180143740992,
+    "pm_source": "gaia_dr3",
+    "pm_reference": "Gaia DR3",
+    "gaia_source_id": "1648328016354496384"
+  }
+}

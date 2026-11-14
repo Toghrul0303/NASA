@@ -1,0 +1,38 @@
+# SPHEREx Sky Explorer
+
+`@docs/DATA_CONTRACT.md`, `@docs/BACKEND_SPEC.md`, and `@docs/FRONTEND_SPEC.md` are the single source of truth. Read them before changing shapes, math, or I/O. Do not invent fields, units, or endpoints. On conflict, `DATA_CONTRACT.md` wins. `FRONTEND_SPEC.md` must not redefine it.
+
+## Architecture
+
+- **Map vs Lab.** Aladin Lite is the map only: navigation, footprint, Gaia overlay. Frames, differences, and RGB are an HTML5 Canvas in the lab. Never push L2 cutout stacks through Aladin's layer system.
+- **Blink.** One detector and one wavelength window: `|lambda_um - lambda0_um| <= k * bandwidth_um` (that frame's `bandwidth_um`). Never mix detectors or wavelengths in frames mode.
+- **Lambda-time, not a light curve.** Photometry is the 2D plane from `sed.json`: x = time, y = wavelength, colour = flux. A light curve is only a brushed horizontal slice of that plane. Label every photometry view `Quick-look from L2 cutouts`.
+- **No direct browser calls to IRSA or ESA.** The browser talks only to the app origin (`/api`, `/data`) and the configured Aladin survey host. IRSA and ESA are backend-only.
+
+## Data traps
+
+Binaries are little-endian float16, C-order `[item, plane, y, x]`. `y = 0` is the southern row; canvas row 0 is the top. Flip vertically in exactly one function, `toCanvasOrder`. Do not flip `x`. PNG previews are already canvas-oriented; draw them with no flip.
+
+```ts
+canvasRow = H - 1 - y
+canvasCol = x
+```
+
+```python
+BAD_MASK = 712439  # bad when (flags & 712439) != 0
+# SOURCE is bit 21 and is benign. Never add it to BAD_MASK.
+```
+
+Plane 0 is intensity (MJy/sr). Plane 1 is **sigma**, not variance. Weights are `w = 1 / sigma**2`. `sigma_D = sqrt(sigma_A**2 + sigma_B**2)`.
+
+Gaia `source_id` is a string (up to 19 digits). Never coerce it to a number.
+
+## Hackathon MVP override
+
+While building the first vertical slice, skip:
+
+- Playwright E2E (`FRONTEND_SPEC` §17.2) — do not write or run them.
+- The 90% coverage targets (`BACKEND_SPEC` §12).
+- The `mypy --strict` gate (`BACKEND_SPEC` §12).
+
+Write unit tests only for `binfmt`, `half`, `wcs`, `toCanvasOrder`, and `contract_check`. Leave every other suite until that slice works.

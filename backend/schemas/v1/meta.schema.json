@@ -1,0 +1,579 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spherex-sky-explorer/schema/v1/meta.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "slug",
+    "tier",
+    "title",
+    "status",
+    "created_utc",
+    "data_version",
+    "pipeline_version",
+    "target",
+    "center",
+    "observations",
+    "grid",
+    "binaries",
+    "processing",
+    "channels",
+    "previews",
+    "files"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "common.schema.json#/$defs/schema_version"
+    },
+    "slug": {
+      "$ref": "common.schema.json#/$defs/slug"
+    },
+    "tier": {
+      "enum": [
+        "tier1",
+        "tier1_5",
+        "tier2"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "status": {
+      "enum": [
+        "complete",
+        "partial"
+      ]
+    },
+    "created_utc": {
+      "$ref": "common.schema.json#/$defs/iso_utc"
+    },
+    "data_version": {
+      "$ref": "common.schema.json#/$defs/data_version"
+    },
+    "pipeline_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "input_ra_deg",
+        "input_dec_deg",
+        "coord_epoch_year",
+        "coord_epoch_assumed",
+        "pmra_mas_yr",
+        "pmdec_mas_yr",
+        "parallax_mas",
+        "pm_source",
+        "pm_reference"
+      ],
+      "properties": {
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 120
+        },
+        "input_ra_deg": {
+          "$ref": "common.schema.json#/$defs/ra_deg"
+        },
+        "input_dec_deg": {
+          "$ref": "common.schema.json#/$defs/dec_deg"
+        },
+        "coord_epoch_year": {
+          "type": "number",
+          "minimum": 1900,
+          "maximum": 2100
+        },
+        "coord_epoch_assumed": {
+          "type": "boolean"
+        },
+        "pmra_mas_yr": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "pmdec_mas_yr": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "parallax_mas": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "pm_source": {
+          "enum": [
+            "gaia_dr3",
+            "literature",
+            "user",
+            "none"
+          ]
+        },
+        "pm_reference": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 200
+        }
+      }
+    },
+    "center": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ra_deg",
+        "dec_deg",
+        "t_mid_mjd"
+      ],
+      "properties": {
+        "ra_deg": {
+          "$ref": "common.schema.json#/$defs/ra_deg"
+        },
+        "dec_deg": {
+          "$ref": "common.schema.json#/$defs/dec_deg"
+        },
+        "t_mid_mjd": {
+          "$ref": "common.schema.json#/$defs/mjd"
+        }
+      }
+    },
+    "observations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "n_frames",
+        "n_epochs",
+        "mjd_min",
+        "mjd_max",
+        "releases",
+        "n_failed_fetches",
+        "failed_source_uris"
+      ],
+      "properties": {
+        "n_frames": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "n_epochs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "mjd_min": {
+          "$ref": "common.schema.json#/$defs/mjd"
+        },
+        "mjd_max": {
+          "$ref": "common.schema.json#/$defs/mjd"
+        },
+        "releases": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/release"
+          },
+          "uniqueItems": true
+        },
+        "n_failed_fetches": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed_source_uris": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 500
+        }
+      }
+    },
+    "grid": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "size_deg",
+        "width",
+        "height",
+        "projection",
+        "pixel_scale_arcsec",
+        "crval1_deg",
+        "crval2_deg",
+        "crpix1",
+        "crpix2",
+        "cdelt1_deg",
+        "cdelt2_deg"
+      ],
+      "properties": {
+        "size_deg": {
+          "$ref": "common.schema.json#/$defs/size_deg"
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "projection": {
+          "const": "TAN"
+        },
+        "pixel_scale_arcsec": {
+          "const": 6.15
+        },
+        "crval1_deg": {
+          "$ref": "common.schema.json#/$defs/ra_deg"
+        },
+        "crval2_deg": {
+          "$ref": "common.schema.json#/$defs/dec_deg"
+        },
+        "crpix1": {
+          "type": "number"
+        },
+        "crpix2": {
+          "type": "number"
+        },
+        "cdelt1_deg": {
+          "type": "number",
+          "exclusiveMaximum": 0
+        },
+        "cdelt2_deg": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "binaries": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "frames",
+        "coadds"
+      ],
+      "properties": {
+        "frames": {
+          "$ref": "#/$defs/binary_descriptor"
+        },
+        "coadds": {
+          "$ref": "#/$defs/binary_descriptor"
+        }
+      }
+    },
+    "processing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bad_mask",
+        "bad_flag_bits",
+        "benign_flag_bits",
+        "photometry_radii_px",
+        "annulus_px",
+        "background_model",
+        "reprojection",
+        "epoch_gap_days",
+        "contamination_severe_fraction",
+        "pm_fit_min_epochs",
+        "pm_fit_min_baseline_days",
+        "line_markers"
+      ],
+      "properties": {
+        "bad_mask": {
+          "const": 712439
+        },
+        "bad_flag_bits": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "common.schema.json#/$defs/flag_name"
+          },
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 31
+          },
+          "minProperties": 15,
+          "maxProperties": 15
+        },
+        "benign_flag_bits": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "SOURCE"
+          ],
+          "properties": {
+            "SOURCE": {
+              "const": 21
+            }
+          }
+        },
+        "photometry_radii_px": {
+          "const": [
+            3,
+            4,
+            5
+          ]
+        },
+        "annulus_px": {
+          "const": [
+            6,
+            10
+          ]
+        },
+        "background_model": {
+          "const": "zodi_subtracted_plus_local_sigma_clipped"
+        },
+        "reprojection": {
+          "enum": [
+            "interp",
+            "exact"
+          ]
+        },
+        "epoch_gap_days": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "contamination_severe_fraction": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "pm_fit_min_epochs": {
+          "const": 3
+        },
+        "pm_fit_min_baseline_days": {
+          "const": 300
+        },
+        "line_markers": {
+          "type": "array",
+          "minItems": 8,
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "lambda_um"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "lambda_um": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "channels": {
+      "type": "array",
+      "minItems": 102,
+      "maxItems": 102,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "channel",
+          "band",
+          "band_channel",
+          "lambda_um",
+          "bandwidth_um"
+        ],
+        "properties": {
+          "channel": {
+            "$ref": "common.schema.json#/$defs/channel"
+          },
+          "band": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6
+          },
+          "band_channel": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 17
+          },
+          "lambda_um": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "bandwidth_um": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0
+          }
+        }
+      }
+    },
+    "previews": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "thumb",
+        "rgb_detector",
+        "rgb_equal_channel",
+        "stretch"
+      ],
+      "properties": {
+        "thumb": {
+          "const": "previews/thumb.png"
+        },
+        "rgb_detector": {
+          "enum": [
+            "previews/rgb_detector.png",
+            null
+          ]
+        },
+        "rgb_equal_channel": {
+          "const": "previews/rgb_equal_channel.png"
+        },
+        "stretch": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "lower_percentile",
+            "upper_percentile"
+          ],
+          "properties": {
+            "type": {
+              "const": "asinh"
+            },
+            "lower_percentile": {
+              "const": 1.0
+            },
+            "upper_percentile": {
+              "const": 99.5
+            }
+          }
+        }
+      }
+    },
+    "files": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "frames.json",
+        "frames.bin",
+        "coadds.json",
+        "coadds.bin",
+        "sed.json",
+        "gaia.json"
+      ],
+      "properties": {
+        "frames.json": {
+          "$ref": "#/$defs/file_entry"
+        },
+        "frames.bin": {
+          "$ref": "#/$defs/file_entry"
+        },
+        "coadds.json": {
+          "$ref": "#/$defs/file_entry"
+        },
+        "coadds.bin": {
+          "$ref": "#/$defs/file_entry"
+        },
+        "sed.json": {
+          "$ref": "#/$defs/file_entry"
+        },
+        "gaia.json": {
+          "$ref": "#/$defs/file_entry"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "file_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bytes",
+        "sha256"
+      ],
+      "properties": {
+        "bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sha256": {
+          "$ref": "common.schema.json#/$defs/sha256"
+        }
+      }
+    },
+    "binary_descriptor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file",
+        "dtype",
+        "byte_order",
+        "axes",
+        "planes",
+        "unit",
+        "n_items",
+        "height",
+        "width",
+        "bytes"
+      ],
+      "properties": {
+        "file": {
+          "enum": [
+            "frames.bin",
+            "coadds.bin"
+          ]
+        },
+        "dtype": {
+          "const": "float16"
+        },
+        "byte_order": {
+          "const": "little"
+        },
+        "axes": {
+          "const": [
+            "item",
+            "plane",
+            "y",
+            "x"
+          ]
+        },
+        "planes": {
+          "const": [
+            "intensity",
+            "sigma"
+          ]
+        },
+        "unit": {
+          "const": "MJy/sr"
+        },
+        "n_items": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

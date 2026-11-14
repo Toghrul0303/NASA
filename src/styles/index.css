@@ -1053,8 +1053,10 @@ html.light {
 }
 
 .ws-lab-scroll {
+  display: flex;
   min-height: 0;
   flex: 1;
+  flex-direction: column;
   overflow: auto;
   padding: 12px;
 }
@@ -1179,4 +1181,99 @@ html.light {
 .ws-shell[data-lab="closed"] .ws-lab,
 .ws-shell[data-lab="closed"] .ws-separator {
   display: none;
+}
+
+.ws-blink {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ws-blink-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  color: var(--ws-fg);
+  font-size: 13px;
+}
+
+.ws-number {
+  width: 4.5rem;
+  min-height: 32px;
+  margin-left: 8px;
+  padding: 0 8px;
+  border: 1px solid var(--ws-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ws-fg);
+  font: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.ws-frame {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ws-frame-stage {
+  position: relative;
+  min-height: 260px;
+  flex: 1;
+  overflow: hidden;
+  border: 1px solid var(--ws-border);
+  border-radius: 12px;
+  background: #05070b;
+  touch-action: none;
+}
+
+.ws-frame-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.ws-frame-canvas[data-panning="true"] {
+  cursor: grabbing;
+}
+
+.ws-frame-canvas:focus-visible,
+.ws-number:focus-visible {
+  outline: 2px solid var(--ws-primary);
+  outline-offset: 2px;
+}
+
+.ws-frame-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.ws-readout {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 16rem;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  color: var(--ws-fg);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.ws-zoom {
+  color: var(--ws-fg);
+  font-size: 12px;
 }

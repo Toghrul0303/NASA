@@ -5,6 +5,7 @@ import { useWorkspaceStore } from '../state/store'
 import { CloseIcon } from '../ui/icons'
 import { Skeleton } from '../ui/Skeleton'
 import { Tabs } from '../ui/Tabs'
+import { BlinkStub } from './BlinkStub'
 
 const LAB_TOOLS = TOOLS.filter((tool) => !tool.closesLab)
 const LOAD_STEPS = ['meta', 'files', 'verification'] as const
@@ -73,6 +74,8 @@ function DatasetState({ onRetry }: { onRetry: () => void }) {
       </div>
     )
   }
+
+  if (tool === 'blink') return <BlinkStub />
 
   const active = toolById(tool)
   return (

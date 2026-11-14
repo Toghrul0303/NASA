@@ -1,1 +1,2 @@
 *.bin binary
+public/data/fixture-barnard/*.json text eol=lf

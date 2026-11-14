@@ -162,7 +162,11 @@ interface WorkspaceStore {
   setTheme: (theme: ThemeName) => void
   pushToast: (message: string) => void
   dismissToast: (id: number) => void
-  loadDataset: (slug: string) => Promise<void>
+  /**
+   * `recenter` defaults to true (a user picked this dataset).
+   * URL boot passes false when `ra` and `dec` are already in the query.
+   */
+  loadDataset: (slug: string, options?: { recenter?: boolean }) => Promise<void>
 }
 
 const DEFAULT_FOV_DEG = 0.5
@@ -355,7 +359,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set) => ({
   },
   dismissToast: (id) =>
     set((state) => ({ ui: { ...state.ui, toasts: state.ui.toasts.filter((toast) => toast.id !== id) } })),
-  loadDataset: async (slug) => {
+  loadDataset: async (slug, options) => {
     loadController?.abort()
     const controller = new AbortController()
     loadController = controller
@@ -378,17 +382,20 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set) => ({
       const loaded = await fetchDataset(slug, { signal: controller.signal })
       if (generation !== loadGeneration || controller.signal.aborted) return
       const dataset = Object.freeze(loaded)
+      const recenter = options?.recenter !== false
       set((state) => {
         const blink = blinkForFrames(dataset.frames.frames, state.ui.reducedMotion)
         return {
           dataset: { slug, status: 'ready', dataset, errorCode: null },
           frameFocus: null,
           gaiaLayer: dataset.gaia?.query_status === 'ok',
-          view: {
-            ...state.view,
-            ra: dataset.meta.center.ra_deg,
-            dec: dataset.meta.center.dec_deg,
-          },
+          view: recenter
+            ? {
+                ...state.view,
+                ra: dataset.meta.center.ra_deg,
+                dec: dataset.meta.center.dec_deg,
+              }
+            : state.view,
           tool: {
             ...state.tool,
             blink,

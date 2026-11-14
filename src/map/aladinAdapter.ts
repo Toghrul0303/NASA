@@ -77,6 +77,12 @@ export interface MapSurface extends MapAdapter {
   resize(): void
   onSurveyStatus(cb: (status: SurveyStatus) => void): () => void
   retrySurvey(): Promise<void>
+  /**
+   * Embed mode has no Aladin option for the logo link (`https://aladin.cds.unistra.fr/`,
+   * `target="_blank"`, no `rel="noopener"`). Hide that chrome and drop any other
+   * outbound anchor that is not a `target="_blank"` + `rel="noopener"` link-out.
+   */
+  setEmbedMode(on: boolean): void
 }
 
 interface AladinClick {
@@ -330,6 +336,7 @@ class AladinLiteAdapter implements MapSurface {
   private baseSurveyUrl: string | null = null
   private surveyStatus: SurveyStatus | null = null
   private surveyAttempt = 0
+  private embedMode = false
   private readonly surveyListeners = new Set<(status: SurveyStatus) => void>()
 
   private readonly onCopyClick = (event: MouseEvent): void => {
@@ -376,6 +383,9 @@ class AladinLiteAdapter implements MapSurface {
         showFullscreenControl: false,
         showStatusBar: false,
         showLayersControl: false,
+        showShareControl: false,
+        showSimbadPointerControl: false,
+        showContextMenu: false,
         log: false,
       })
       if (this.destroyed) {
@@ -388,6 +398,7 @@ class AladinLiteAdapter implements MapSurface {
       this.bindEvents(aladin)
       aladin.gotoRaDec(view.ra, view.dec)
       aladin.setFoV(view.fov)
+      this.applyEmbedChrome()
       this.resize()
       this.publishSurvey(chosen ? 'ready' : 'unavailable')
     } catch (error) {
@@ -414,6 +425,11 @@ class AladinLiteAdapter implements MapSurface {
       console.info('[map] Base survey failed:', error)
       if (attempt === this.surveyAttempt && !this.destroyed) this.publishSurvey('unavailable')
     }
+  }
+
+  setEmbedMode(on: boolean): void {
+    this.embedMode = on
+    this.applyEmbedChrome()
   }
 
   gotoRaDec(ra: number, dec: number): void {
@@ -636,6 +652,26 @@ class AladinLiteAdapter implements MapSurface {
     if (host) {
       host.replaceChildren()
       host.classList.remove('aladin-container')
+    }
+  }
+
+  private applyEmbedChrome(): void {
+    const root = this.aladin?.aladinDiv ?? this.host
+    if (!root) return
+    const logo = root.querySelector('.aladin-logo-container')
+    if (logo instanceof HTMLElement) {
+      logo.hidden = this.embedMode
+    }
+    for (const node of root.querySelectorAll('a')) {
+      if (!(node instanceof HTMLAnchorElement)) continue
+      const allowed = node.target === '_blank' && node.rel.split(/\s+/).includes('noopener')
+      if (this.embedMode && !allowed) {
+        if (!node.dataset.embedHref && node.hasAttribute('href')) node.dataset.embedHref = node.href
+        node.removeAttribute('href')
+      } else if (!this.embedMode && node.dataset.embedHref) {
+        node.href = node.dataset.embedHref
+        delete node.dataset.embedHref
+      }
     }
   }
 

@@ -8,19 +8,32 @@ import {
   useState,
   type CSSProperties,
   type KeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
-import type { MapTargetOption } from '../map/AladinMap'
+import { URL_DEBOUNCE_MS } from '../config/constants'
+import { liveAnalysisUnavailable } from '../config/copy'
+import type { AladinMapHandle, MapTargetOption } from '../map/AladinMap'
 import { footprintPolygon } from '../map/footprint'
 import type { Dataset } from '../data/dataset'
 import { loadRegistry, type RegistryEntry } from '../data/registry'
 import { useWorkspaceStore } from '../state/store'
+import { createUrlSync, wrapRa, type UrlSync, type UrlSyncWindow } from '../state/urlSync'
 import { applyTheme } from './theme'
 import { AsteriskIcon, ChevronDownIcon, MoonIcon, SunIcon } from './icons'
 import { Skeleton } from './Skeleton'
 import { Lab } from '../lab/Lab'
 
 const AladinMap = lazy(() => import('../map/AladinMap').then((mod) => ({ default: mod.AladinMap })))
+
+function browserWindow(): UrlSyncWindow {
+  return {
+    history: window.history,
+    location: window.location,
+    addEventListener: (type, listener) => window.addEventListener(type, listener),
+    removeEventListener: (type, listener) => window.removeEventListener(type, listener),
+  }
+}
 
 const LAB_MIN = 30
 const LAB_MAX = 60
@@ -87,12 +100,15 @@ export function WorkspacePage() {
   const datasetState = useWorkspaceStore((state) => state.dataset)
   const loadDataset = useWorkspaceStore((state) => state.loadDataset)
   const embed = useWorkspaceStore((state) => state.ui.embed)
-  const setEmbed = useWorkspaceStore((state) => state.setEmbed)
+  const toasts = useWorkspaceStore((state) => state.ui.toasts)
+  const dismissToast = useWorkspaceStore((state) => state.dismissToast)
   const theme = useWorkspaceStore((state) => state.ui.theme)
   const setTheme = useWorkspaceStore((state) => state.setTheme)
   const [entries, setEntries] = useState<readonly RegistryEntry[]>([])
   const [labPct, setLabPct] = useState(LAB_DEFAULT)
   const mapRef = useRef<HTMLDivElement>(null)
+  const mapApi = useRef<AladinMapHandle | null>(null)
+  const syncRef = useRef<UrlSync | null>(null)
   const devGaiaPatched = useRef<Dataset | null>(null)
 
   useLayoutEffect(() => {
@@ -129,24 +145,58 @@ export function WorkspacePage() {
     }
   }, [])
 
-  // TEMP until F10 urlSync
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    if (params.get('embed') === '1') setEmbed(true)
-    const slug = params.get('slug')
-    if (slug) {
-      void loadDataset(slug)
-      return
+  useLayoutEffect(() => {
+    const sync = createUrlSync({
+      win: browserWindow(),
+      setTimeout: (handler, timeout) => window.setTimeout(handler, timeout),
+      clearTimeout: (id) => window.clearTimeout(id),
+      debounceMs: URL_DEBOUNCE_MS,
+      applyUrlState: (parsed) => {
+        const store = useWorkspaceStore.getState()
+        store.setView({
+          ra: parsed.ra ?? store.view.ra,
+          dec: parsed.dec ?? store.view.dec,
+          fov: parsed.fov ?? store.view.fov,
+        })
+        store.setTool(parsed.tool)
+        store.setEmbed(parsed.embed)
+      },
+      gotoRaDec: (ra, dec) => mapApi.current?.gotoRaDec(ra, dec),
+      setFov: (fov) => mapApi.current?.setFov(fov),
+      loadDataset: (slug, options) => useWorkspaceStore.getState().loadDataset(slug, options),
+      getDatasetCenter: () => {
+        const dataset = useWorkspaceStore.getState().dataset.dataset
+        if (!dataset) return null
+        return { ra: dataset.meta.center.ra_deg, dec: dataset.meta.center.dec_deg }
+      },
+      createJobForCoordinate: (ra, dec) => {
+        // TEMP until F15
+        const store = useWorkspaceStore.getState()
+        if (!store.ui.toasts.some((toast) => toast.message === liveAnalysisUnavailable)) {
+          store.pushToast(liveAnalysisUnavailable)
+        }
+        store.setTool('map')
+        store.setView({ ra, dec, fov: store.view.fov })
+      },
+    })
+    syncRef.current = sync
+    const unsubscribe = useWorkspaceStore.subscribe((state, previous) => {
+      if (state.tool.tool !== previous.tool.tool) sync.onToolChanged(state.tool.tool)
+    })
+    void sync.boot()
+    return () => {
+      unsubscribe()
+      sync.dispose()
+      if (syncRef.current === sync) syncRef.current = null
     }
-    if (import.meta.env.DEV) void loadDataset('fixture-barnard')
-  }, [loadDataset, setEmbed])
+  }, [])
 
-  // TEMP dev only
+  // TEMP dev only. `devGaia` is an unknown query parameter kept by urlSync.
   useEffect(() => {
     if (!import.meta.env.DEV) return undefined
     const dataset = datasetState.dataset
     if (datasetState.status !== 'ready' || dataset === null) return undefined
-    const kind = new URLSearchParams(window.location.search).get('devGaia')
+    const kind = syncRef.current?.unknownParams().find(([key]) => key === 'devGaia')?.[1] ?? null
     let cancelled = false
     void import('../dev/gaiaSamples').then((mod) => {
       if (cancelled || !mod.isGaiaSampleKind(kind)) return
@@ -201,6 +251,28 @@ export function WorkspacePage() {
     setTool(tool === 'map' ? 'blink' : 'map')
   }
 
+  function chooseSlug(slug: string): void {
+    if (!slug) return
+    syncRef.current?.onSlugChanged(slug)
+    void loadDataset(slug).then(() => {
+      const state = useWorkspaceStore.getState()
+      if (state.dataset.status !== 'ready' || state.dataset.slug !== slug) return
+      syncRef.current?.onMapViewChanged(state.view.ra, state.view.dec, state.view.fov)
+    })
+  }
+
+  function onEmbedClick(event: ReactMouseEvent<HTMLDivElement>): void {
+    if (!embed) return
+    const target = event.target
+    if (!(target instanceof Element)) return
+    const anchor = target.closest('a')
+    if (!(anchor instanceof HTMLAnchorElement)) return
+    const linkOut = anchor.target === '_blank' && anchor.rel.split(/\s+/).includes('noopener')
+    if (linkOut) return
+    event.preventDefault()
+    event.stopPropagation()
+  }
+
   function onSeparatorKey(event: KeyboardEvent<HTMLDivElement>): void {
     const step = event.shiftKey ? 5 : 1
     if (event.key === 'ArrowRight' || event.key === 'ArrowUp') {
@@ -251,7 +323,13 @@ export function WorkspacePage() {
           : 'Pick a target'
 
   return (
-    <div className="ws-shell" data-lab={labOpen ? 'open' : 'closed'} style={shellStyle}>
+    <div
+      className="ws-shell"
+      data-lab={labOpen ? 'open' : 'closed'}
+      data-embed={embed ? 'true' : 'false'}
+      style={shellStyle}
+      onClickCapture={onEmbedClick}
+    >
       {embed ? null : (
         <header className="flex-none bg-white/90 dark:bg-black/75 backdrop-blur-xl border-b border-black/15 dark:border-white/[0.08] px-4 py-2 flex flex-wrap lg:grid lg:grid-cols-[1fr_auto_1fr] items-center justify-between gap-3 z-30 text-zinc-950 dark:text-white">
           <div className="justify-self-start flex items-center gap-3 min-w-0">
@@ -302,8 +380,7 @@ export function WorkspacePage() {
                 className="liquid-glass-btn appearance-none rounded-full text-xs pl-3 pr-7 py-1 max-w-[210px] truncate text-zinc-900 dark:text-white/90 focus:border-[rgb(240,255,60)]"
                 value={datasetState.slug ?? ''}
                 onChange={(event) => {
-                  const slug = event.target.value
-                  if (slug) void loadDataset(slug)
+                  chooseSlug(event.target.value)
                 }}
               >
                 <option value="" className="bg-white text-zinc-900 dark:bg-[#0B0C10] dark:text-white">
@@ -388,9 +465,17 @@ export function WorkspacePage() {
               gaiaLayerEnabled={gaia?.query_status === 'ok'}
               gaiaLayerOn={gaiaLayer}
               onGaiaLayerChange={setGaiaLayer}
-              onViewChange={setView}
+              embed={embed}
+              mapRef={(handle) => {
+                mapApi.current = handle
+              }}
+              onViewChange={(next) => {
+                const ra = wrapRa(next.ra)
+                syncRef.current?.onMapViewChanged(ra, next.dec, next.fov)
+                setView({ ra, dec: next.dec, fov: next.fov })
+              }}
               onTargetSelect={(target) => {
-                void loadDataset(target.id)
+                chooseSlug(target.id)
               }}
             />
           </Suspense>
@@ -438,6 +523,20 @@ export function WorkspacePage() {
           <Lab />
         </aside>
       </div>
+      {toasts.length > 0 ? (
+        <div className="ws-toasts">
+          {toasts.map((toast) => (
+            <button
+              key={toast.id}
+              type="button"
+              className="ws-toast liquid-glass-bar text-left text-zinc-950 dark:text-white"
+              onClick={() => dismissToast(toast.id)}
+            >
+              {toast.message}
+            </button>
+          ))}
+        </div>
+      ) : null}
     </div>
   )
 }

@@ -959,6 +959,29 @@ html.light .liquid-glass-cta:focus-visible:not(:disabled) {
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 }
 
+.ws-shell[data-embed='true'] footer {
+  display: none;
+}
+
+.ws-toasts {
+  position: fixed;
+  z-index: 40;
+  right: 1rem;
+  bottom: 1rem;
+  display: flex;
+  width: min(100% - 2rem, 24rem);
+  flex-direction: column;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+.ws-toast {
+  pointer-events: auto;
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+  font-size: 0.875rem;
+}
+
 .ws-header {
   display: flex;
   flex: 0 0 auto;

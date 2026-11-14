@@ -189,7 +189,7 @@ export function Lab() {
       >
         <DatasetState
           onRetry={() => {
-            if (slug) void loadDataset(slug)
+            if (slug) void loadDataset(slug, { recenter: false })
           }}
         />
       </Tabs>

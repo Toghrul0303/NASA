@@ -4,6 +4,9 @@
  */
 import type { ContractErrorCode } from '../contract/validate'
 
+/** TEMP until F15 replaces the coordinate boot path with a real job. */
+export const liveAnalysisUnavailable = 'Live analysis is not available yet'
+
 /** Gaia verdict headlines. §14.1. The client never recomputes the verdict. */
 export const verdictHeadlines = {
   match_consistent: 'Gaia match, motion consistent',

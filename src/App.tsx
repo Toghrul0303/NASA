@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { AboutSection } from './ui/AboutSection'
 import { Footer } from './ui/Footer'
 import { HeroSection } from './ui/HeroSection'
@@ -12,7 +13,15 @@ function currentPath(): string {
 }
 
 export function App() {
-  if (currentPath() === '/workspace') {
+  const [path, setPath] = useState(currentPath)
+
+  useEffect(() => {
+    const onPop = () => setPath(currentPath())
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+
+  if (path === '/workspace') {
     return <WorkspacePage />
   }
 

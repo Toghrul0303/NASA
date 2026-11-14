@@ -10,7 +10,7 @@ import {
 } from '../../src/state/urlSync'
 import type { ToolId } from '../../src/config/tools'
 
-function timers(): Pick<UrlSyncDeps, 'setTimeout' | 'clearTimeout'> {
+function timers(): Pick<UrlSyncDeps<ReturnType<typeof setTimeout>>, 'setTimeout' | 'clearTimeout'> {
   return {
     setTimeout: (handler, timeout) => setTimeout(handler, timeout),
     clearTimeout: (id) => clearTimeout(id),
@@ -77,7 +77,7 @@ function fakeBrowser(initial?: { pathname?: string; search?: string; hash?: stri
   }
 }
 
-function harness(browser: FakeBrowser, overrides?: Partial<UrlSyncDeps>) {
+function harness(browser: FakeBrowser, overrides?: Partial<UrlSyncDeps<ReturnType<typeof setTimeout>>>) {
   const applyUrlState = vi.fn<UrlSyncDeps['applyUrlState']>()
   const gotoRaDec = vi.fn<UrlSyncDeps['gotoRaDec']>()
   const setFov = vi.fn<UrlSyncDeps['setFov']>()

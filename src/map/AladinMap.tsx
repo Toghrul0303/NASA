@@ -38,6 +38,13 @@ export interface AladinMapProps {
   onViewChange?: (view: MapView) => void
   onClick?: (ra: number, dec: number) => void
   onTargetSelect?: (target: MapTargetOption) => void
+  /** §5.4. Hides Aladin's outbound logo link. */
+  embed?: boolean
+}
+
+export interface AladinMapHandle {
+  gotoRaDec(ra: number, dec: number): void
+  setFov(deg: number): void
 }
 
 const DEFAULT_VIEW: MapView = { ra: 0, dec: 0, fov: 0.5 }
@@ -141,7 +148,9 @@ export function AladinMap({
   onViewChange,
   onClick,
   onTargetSelect,
-}: AladinMapProps) {
+  embed = false,
+  mapRef,
+}: AladinMapProps & { mapRef?: (handle: AladinMapHandle | null) => void }) {
   const [internal, setInternal] = useState<MapView>(DEFAULT_VIEW)
   const view: MapView = {
     ra: ra ?? internal.ra,
@@ -156,6 +165,10 @@ export function AladinMap({
   onClickRef.current = onClick
   const onTargetSelectRef = useRef(onTargetSelect)
   onTargetSelectRef.current = onTargetSelect
+  const mapRefCallback = useRef(mapRef)
+  mapRefCallback.current = mapRef
+  const embedRef = useRef(embed)
+  embedRef.current = embed
 
   const frameRef = useRef<HTMLDivElement>(null)
   const hostRef = useRef<HTMLDivElement>(null)
@@ -193,12 +206,14 @@ export function AladinMap({
     const apply = () => {
       frame = 0
       enhanceAladinHud(el)
+      adapterRef.current?.setEmbedMode(embedRef.current)
     }
     const schedule = () => {
       if (frame !== 0) return
       frame = requestAnimationFrame(apply)
     }
     enhanceAladinHud(el)
+    adapterRef.current?.setEmbedMode(embedRef.current)
     const observer = new MutationObserver(schedule)
     observer.observe(el, { childList: true, subtree: true })
     return () => {
@@ -226,6 +241,7 @@ export function AladinMap({
         const overlay = overlayRef.current
         adapter.setFootprint(overlay.footprint)
         syncGaiaOverlay(adapter, overlay.gaia, overlay.showGaia)
+        adapter.setEmbedMode(embedRef.current)
         setStatus('ready')
       })
       .catch((error: unknown) => {
@@ -253,12 +269,21 @@ export function AladinMap({
     const offClick = adapter.onClick((nextRa, nextDec) => {
       onClickRef.current?.(nextRa, nextDec)
     })
+    mapRefCallback.current?.({
+      gotoRaDec: (nextRa, nextDec) => adapter.gotoRaDec(nextRa, nextDec),
+      setFov: (deg) => adapter.setFov(deg),
+    })
     return () => {
+      mapRefCallback.current?.(null)
       offSurvey()
       offView()
       offClick()
     }
   }, [status])
+
+  useEffect(() => {
+    adapterRef.current?.setEmbedMode(embed)
+  }, [embed, status])
 
   useEffect(() => {
     const adapter = adapterRef.current
@@ -309,6 +334,7 @@ export function AladinMap({
         <CoordinateFallback
           view={view}
           targets={targets}
+          embed={embed}
           onViewChange={publish}
           onTargetSelect={(target) => onTargetSelectRef.current?.(target)}
         />
@@ -359,11 +385,13 @@ export function AladinMap({
 function CoordinateFallback({
   view,
   targets,
+  embed,
   onViewChange,
   onTargetSelect,
 }: {
   view: MapView
   targets: readonly MapTargetOption[]
+  embed: boolean
   onViewChange: (view: MapView) => void
   onTargetSelect: (target: MapTargetOption) => void
 }) {
@@ -444,22 +472,24 @@ function CoordinateFallback({
               onChange={(event) => setFovText(event.target.value)}
             />
           </label>
-          <label className="block text-sm" htmlFor={`${id}-target`}>
-            {mapCopy.target}
-            <select
-              id={`${id}-target`}
-              className={fieldClass}
-              value={selectedId}
-              onChange={(event) => chooseTarget(event.target.value)}
-            >
-              <option value="">{mapCopy.targetPlaceholder}</option>
-              {targets.map((target) => (
-                <option key={target.id} value={target.id}>
-                  {target.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          {embed ? null : (
+            <label className="block text-sm" htmlFor={`${id}-target`}>
+              {mapCopy.target}
+              <select
+                id={`${id}-target`}
+                className={fieldClass}
+                value={selectedId}
+                onChange={(event) => chooseTarget(event.target.value)}
+              >
+                <option value="">{mapCopy.targetPlaceholder}</option>
+                {targets.map((target) => (
+                  <option key={target.id} value={target.id}>
+                    {target.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           {invalid ? (
             <p role="status" className="text-sm text-white">
               {mapCopy.invalidCoordinates}

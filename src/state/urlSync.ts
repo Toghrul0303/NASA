@@ -60,10 +60,10 @@ export interface DatasetCenter {
   dec: number
 }
 
-export interface UrlSyncDeps {
+export interface UrlSyncDeps<Timer = ReturnType<typeof setTimeout>> {
   win: UrlSyncWindow
-  setTimeout: (handler: () => void, timeout: number) => ReturnType<typeof setTimeout>
-  clearTimeout: (id: ReturnType<typeof setTimeout>) => void
+  setTimeout: (handler: () => void, timeout: number) => Timer
+  clearTimeout: (id: Timer) => void
   debounceMs: number
   applyUrlState: (parsed: ParsedUrl) => void
   gotoRaDec: (ra: number, dec: number) => void
@@ -214,8 +214,8 @@ function devLog(action: 'pushState' | 'replaceState', count: number): void {
   console.info(`[urlSync] ${action} #${count}`)
 }
 
-class UrlSyncController implements UrlSync {
-  private readonly deps: UrlSyncDeps
+class UrlSyncController<Timer> implements UrlSync {
+  private readonly deps: UrlSyncDeps<Timer>
   private current: UrlWriteState = {
     ra: DEFAULT_RA,
     dec: DEFAULT_DEC,
@@ -229,9 +229,14 @@ class UrlSyncController implements UrlSync {
   /** Above zero while a URL-originated change is applied. Map events are ignored. */
   private suppress = 0
   private commanded: MapView | null = null
+  /**
+   * TEMP until F15. The coordinate fallback must not rewrite history when Aladin
+   * later reports the same position. A real pan clears it.
+   */
+  private quietView: MapView | null = null
   private suppressToken = 0
-  private suppressTimer: ReturnType<typeof setTimeout> | null = null
-  private mapTimer: ReturnType<typeof setTimeout> | null = null
+  private suppressTimer: Timer | null = null
+  private mapTimer: Timer | null = null
   private writeCount = 0
 
   private readonly onPopState = (): void => {
@@ -240,7 +245,7 @@ class UrlSyncController implements UrlSync {
     void this.follow(parseUrl(this.deps.win.location.search))
   }
 
-  constructor(deps: UrlSyncDeps) {
+  constructor(deps: UrlSyncDeps<Timer>) {
     this.deps = deps
     deps.win.addEventListener('popstate', this.onPopState)
   }
@@ -258,6 +263,8 @@ class UrlSyncController implements UrlSync {
       if (this.commanded && viewsMatch(view, this.commanded)) this.releaseSuppress()
       return
     }
+    if (this.quietView && viewsMatch(view, this.quietView)) return
+    this.quietView = null
     this.current.ra = view.ra
     this.current.dec = view.dec
     this.current.fov = view.fov
@@ -309,6 +316,7 @@ class UrlSyncController implements UrlSync {
         fov: parsed.fov ?? this.current.fov,
       }
       this.current = { ...view, tool: 'map', embed: parsed.embed }
+      this.quietView = view
       this.armSuppress(view)
       this.deps.createJobForCoordinate(parsed.ra, parsed.dec)
       this.deps.applyUrlState({ ...parsed, tool: 'map' })
@@ -404,18 +412,18 @@ class UrlSyncController implements UrlSync {
 
   private write(action: 'push' | 'replace'): void {
     if (this.disposed) return
-    const { location, history } = this.deps.win
-    if (location.pathname !== WORKSPACE_PATH) return
-    const next = buildWorkspaceUrl(location, this.current, this.unknown)
-    const current = `${location.pathname}${location.search}${location.hash}`
+    const browser = this.deps.win
+    if (browser.location.pathname !== WORKSPACE_PATH) return
+    const next = buildWorkspaceUrl(browser.location, this.current, this.unknown)
+    const current = `${browser.location.pathname}${browser.location.search}${browser.location.hash}`
     if (next === current) return
-    if (action === 'push') history.pushState(null, '', next)
-    else history.replaceState(null, '', next)
+    if (action === 'push') browser.history.pushState(null, '', next)
+    else browser.history.replaceState(null, '', next)
     this.writeCount += 1
     devLog(action === 'push' ? 'pushState' : 'replaceState', this.writeCount)
   }
 }
 
-export function createUrlSync(deps: UrlSyncDeps): UrlSync {
+export function createUrlSync<Timer>(deps: UrlSyncDeps<Timer>): UrlSync {
   return new UrlSyncController(deps)
 }

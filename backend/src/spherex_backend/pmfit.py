@@ -13,14 +13,23 @@ from spherex_backend.timeutil import mjd_to_year
 
 
 def _wls(t: np.ndarray, y: np.ndarray, sigma: np.ndarray) -> tuple[float, float]:
-    """Weighted linear fit ``y = a + b t``; returns ``(b, sigma_b)``."""
+    """Weighted linear fit ``y = a + b t``; returns ``(b, sigma_b)``.
+
+    ``sigma_b`` comes from the covariance of the fit scaled by ``max(1, chi2 / dof)`` with
+    ``dof = n - 2``, so scatter larger than the per-frame sigmas widens the error (it never
+    narrows it). With ``dof <= 0`` there is nothing to scale by.
+    """
     w = 1.0 / sigma**2
     s, sx, sy = w.sum(), (w * t).sum(), (w * y).sum()
     sxx, sxy = (w * t * t).sum(), (w * t * y).sum()
     delta = s * sxx - sx * sx
     if delta <= 0:
         raise ValueError("degenerate time baseline")
-    return float((s * sxy - sx * sy) / delta), float(math.sqrt(s / delta))
+    slope = (s * sxy - sx * sy) / delta
+    intercept = (sy - slope * sx) / s
+    dof = len(t) - 2
+    scale = max(1.0, float((w * (y - intercept - slope * t) ** 2).sum()) / dof) if dof > 0 else 1.0
+    return float(slope), float(math.sqrt(scale * s / delta))
 
 
 def measure_pm(

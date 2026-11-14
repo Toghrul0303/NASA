@@ -608,7 +608,7 @@ On the float32 grid arrays: window = grid pixels within `processing.centroid_win
 ### 6.6 Stage 4 — Gaia products (`pmfit.py`, `gaia.py`)
 
 1. **Predicted track.** For the primary source only: one entry per epoch with `mjd = epochs[i].mjd_mean`, position propagated from the source's `ref_epoch` with its own proper motion (zero motion when null), and grid pixel from `grid.world_to_pixel` (`§C 9.2` item 4).
-2. **Measured proper motion** (`pmfit.py`): use frames with non-null centroids and `contamination_level != 2`. Convert each centroid to tangent-plane offsets `(ξ, η)` in arcsec relative to the grid center with `grid.pixel_to_world` and the gnomonic equations of `§C 3.2`. Fit `ξ(t)` and `η(t)` (`t` in Julian years from `mjd_to_year`) with weighted linear least squares, weights `1/σ²` with `σ = max(centroid_err_px, processing.pm_centroid_sigma_floor_px) · 6.15`. The slopes are `pmra_mas_yr` and `pmdec_mas_yr` (×1000, because ξ is already scaled by cos δ); the errors come from the covariance of the fit. `n_frames_used`, `n_epochs_used` (distinct `epoch_id`), `baseline_days` (max − min `mjd`) are recorded. The result is `null` when `n_epochs_used < processing.pm_fit_min_epochs` or `baseline_days < processing.pm_fit_min_baseline_days` (`§C 9.2` item 5).
+2. **Measured proper motion** (`pmfit.py`): use frames with non-null centroids and `contamination_level != 2`. Convert each centroid to tangent-plane offsets `(ξ, η)` in arcsec relative to the grid center with `grid.pixel_to_world` and the gnomonic equations of `§C 3.2`. Fit `ξ(t)` and `η(t)` (`t` in Julian years from `mjd_to_year`) with weighted linear least squares, weights `1/σ²` with `σ = max(centroid_err_px, processing.pm_centroid_sigma_floor_px) · 6.15`. The slopes are `pmra_mas_yr` and `pmdec_mas_yr` (×1000, because ξ is already scaled by cos δ); the errors come from the covariance of the fit, scaled by `max(1, χ²/dof)` with `χ² = Σ w·residual²` and `dof = n_frames_used − 2` (no scaling when `dof ≤ 0`). The per-frame sigmas are Monte-Carlo and floor-limited and understate the real centroid scatter; the scaling makes the reported errors reflect the scatter about the fitted line and never makes them smaller than the formal covariance. `n_frames_used`, `n_epochs_used` (distinct `epoch_id`), `baseline_days` (max − min `mjd`) are recorded. The result is `null` when `n_epochs_used < processing.pm_fit_min_epochs` or `baseline_days < processing.pm_fit_min_baseline_days` (`§C 9.2` item 5).
 3. **Consistency** (`§C 9.2` item 6): non-null only when `measured_pm` is non-null and the primary has non-null `pmra`, `pmdec`. The Gaia proper-motion errors are not selected by the contract query and are treated as 0; `sigma_combined_mas_yr = max(pmra_err_mas_yr, pmdec_err_mas_yr)` of the measurement.
 4. **Verdict** (`§C 9.2` item 7). `verdict_detail` templates:
 
@@ -688,14 +688,14 @@ class JobManager:
 `submit`:
 
 1. Compute `slug` (`§C 11.3`) and the Tier 2 `Target` from the request.
-2. If `force_refresh` is false and `data/{slug}/meta.json` exists with `status == "complete"` and age below `jobs.cache_ttl_hours`: return `cached = true`, `status = "complete"`, `job_id` from `cache/jobs/by_slug/{slug}.json`, HTTP 200. When that job's `events.jsonl` no longer exists, synthesize it from `meta.json`: `job_state(complete)` then `complete` (`§C 12.2`), and mark it terminal.
+2. If `force_refresh` is false and `data/{slug}/meta.json` exists with `status == "complete"` and age below `jobs.cache_ttl_hours`: return `cached = true`, `status = "complete"`, HTTP 200. The `job_id` comes from `cache/jobs/by_slug/{slug}.json`. `spherex build-coord` runs with `job_id = "cli"` and does not write that file, so when it is missing, or when the recorded job's `complete` event does not carry the sha256 of the current `meta.json`, mint `job_id = "j_" + secrets.token_hex(8)`, write `job.json`, and synthesize the stream. Synthesis is `job_state(complete)` then `complete` (`§C 12.2`). `complete.elapsed_s` is `0.0`: `meta.json` does not store the original duration. `force_refresh` skips this step and starts a new job under `cfg.effective("tier2")`, including `tier2_overrides.sampling.max_frames_per_target`. That job is not limited to cutouts already on disk, so it can select more frames than an earlier cache-only build and finish `result_status = "partial"` when live fetches fail. A failed job publishes nothing.
 3. Else if a queued or running job with the same `slug` exists: return it with `joined = true`, HTTP 202.
 4. Else if `queued + running >= jobs.max_concurrent_jobs + jobs.queue_capacity`: raise `QueueFull` (HTTP 429, `Retry-After: jobs.retry_after_s`).
 5. Else create `job_id = "j_" + secrets.token_hex(8)`, write `job.json` (request, slug, status, `created_utc`), append `job_state(queued, queue_position)` (1-based), and enqueue; HTTP 202.
 
-`run_forever` (an asyncio task started at application startup) starts up to `jobs.max_concurrent_jobs` jobs concurrently. A job starts by appending `job_state(running)`, then runs `run_pipeline` through `asyncio.to_thread`. On success it appends `complete`; on `PipelineError` it appends `failed` (`code`, `message`, `retryable`, `elapsed_s`); on any other exception it appends `failed` with `internal_error`. Terminal events mark the log terminal and close subscriber streams. `job.json` records the terminal status.
+`run_forever` (an asyncio task started at application startup) starts up to `jobs.max_concurrent_jobs` jobs concurrently. A job starts by appending `job_state(running)`, then runs `run_pipeline` on a daemon thread. On success it appends `complete`; on `PipelineError` it appends `failed` (`code`, `message`, `retryable`, `elapsed_s`); on any other exception it appends `failed` with `internal_error`. Terminal events mark the log terminal and close subscriber streams. `job.json` records the terminal status.
 
-`prune` (hourly task): removes `cache/jobs/{job_id}/` directories more than `jobs.event_retention_hours` after their terminal event, and `data/c-*` directories older than `jobs.tier2_data_retention_days`.
+`prune` is specified as an hourly task (remove `cache/jobs/{job_id}/` more than `jobs.event_retention_hours` after the terminal event, and `data/c-*` older than `jobs.tier2_data_retention_days`) but is not started. It is M6. `spherex jobs prune` and `spherex warm` exit 3 with "not implemented".
 
 **Startup recovery.** Every `job.json` with a non-terminal status is closed by appending `failed` (`internal_error`, message `Server restarted.`, `retryable = true`).
 
@@ -703,13 +703,14 @@ class JobManager:
 
 ## 8. HTTP API (`api.py`)
 
-FastAPI application, JSON responses unless stated. All error responses use the envelope of `§C 11.5`.
+FastAPI application, JSON responses unless stated. Responses for the codes in `§C 11.5`, and for 404 and 500, use that envelope. Statuses the contract does not name (for example 405) keep FastAPI's default body.
 
 ### 8.1 Endpoints
 
 | Method and path | Behavior | Contract |
 |---|---|---|
 | `POST /api/jobs` | Parse, validate, normalize, `JobManager.submit` | `§C 11` |
+| `GET /api/jobs/{job_id}` | The `§C 11.4` body for a known job. No contract defines this route. `cached` is true if and only if `status == "complete"`; `joined` is false. A failed job is returned with `status = "failed"`, outside the `§C 11.4` enum. Unknown `job_id` → `404 not_found` | — |
 | `GET /api/jobs/{job_id}/events` | SSE stream | `§C 12` |
 | `GET`, `HEAD /data/{slug}/{path:path}` | File service | `§C 13` |
 | `GET /api/health` | `{"status": "ok", "version": "1.0.0"}` (operations endpoint, outside the data contract) | — |
@@ -761,13 +762,13 @@ A custom route (not a generic static mount) implementing `§C 13`:
 4. `Cache-Control: public, max-age=31536000, immutable` when the query string contains `v=<data_version>` and it equals the directory's current `data_version`; otherwise `no-cache`.
 5. `.json` responses are gzip-compressed when the request has `Accept-Encoding: gzip` (compressed bytes memoized by `(path, mtime_ns)`), with `Vary: Accept-Encoding`. `.bin` and `.png` are never compressed and always carry `Content-Length`.
 6. `HEAD` returns the headers of the corresponding `GET`.
-7. During export publication (§6.7 item 7) a request for a slug being published acquires the same per-slug lock in shared mode and therefore observes either the old or the new directory.
+7. During export publication (§6.7 item 7) a request for a slug being published takes the same per-slug lock while it reads the file. `FileLock` has no shared mode, so the lock is exclusive and readers of one slug serialize for that read. A request therefore observes either the old or the new directory, never a mix of the two.
 
 CORS: `fastapi.middleware.cors.CORSMiddleware` with `server.cors_allow_origins` (methods `GET`, `HEAD`, `POST`, `OPTIONS`; header `Last-Event-ID` allowed; `ETag` exposed).
 
 ### 8.5 Application lifecycle
 
-Startup order: load and validate config (§4 rules) → load schemas registry → load `channels.json` → create directories → apply recovery (§7.2) → start `JobManager.run_forever` and `prune` tasks. Shutdown cancels the tasks; running pipeline threads finish the current unit and stop at the next deadline check.
+Startup order: load and validate config (§4 rules) → load schemas registry → load `channels.json` → create directories → apply recovery (§7.2) → start `JobManager.run_forever`. The prune task is not started (M6). Shutdown cancels the scheduler; a running pipeline thread finishes the current unit and stops at the next deadline check.
 
 ---
 
@@ -801,11 +802,11 @@ Exit codes: `0` success, `2` usage error, `3` validation or contract failure, `4
 | `spherex build [--slug S ...] [--tier tier1\|tier1_5\|all] [--force]` | Run `run_pipeline` for the selected configured targets with a console sink; skips a target whose `data/{slug}/meta.json` exists unless `--force`; prints a summary (frames, epochs, failures, seconds) |
 | `spherex build-coord --ra DEG --dec DEG [--size DEG] [--name TXT] [--pmra MAS] [--pmdec MAS] [--epoch YEAR] [--force]` | Run the Tier 2 pipeline synchronously for a coordinate; prints the slug |
 | `spherex update [--tier tier1\|tier1_5\|all]` | Re-run discovery for selected targets; when the new `data_version` equals the stored one, print `unchanged` and stop; otherwise rebuild (cached cutouts are reused, so only new exposures are downloaded) and publish atomically |
-| `spherex warm --file PATH` | Read lines `ra_deg dec_deg [size_deg]`, run `build-coord` for each with the global fetch limits |
+| `spherex warm --file PATH` | Specified: read lines `ra_deg dec_deg [size_deg]`, run `build-coord` for each. Not implemented (M6); exits 3. Pre-warming is `scripts/prewarm.ps1` |
 | `spherex validate [PATH \| --slug S \| --all]` | Run `contract_check.validate_directory`; print violations; exit `3` on any |
 | `spherex probe irsa --ra DEG --dec DEG` | Run a TAP discovery and one cutout fetch; print timings, row counts, response headers, and the result of an `OPTIONS` request with an `Origin` header (informational) |
 | `spherex probe gaia --ra DEG --dec DEG` | Run the Gaia cone query; print the selected columns and timing |
-| `spherex jobs prune` | Run the prune routine of §7.2 once |
+| `spherex jobs prune` | Specified: run the prune routine of §7.2 once. Not implemented (M6); exits 3 |
 
 ---
 

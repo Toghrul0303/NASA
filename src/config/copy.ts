@@ -2,6 +2,7 @@
  * User-facing strings. Quoted sentences are taken from FRONTEND_SPEC §§7, 13, 14, 15
  * and the dataset error keys named for this module in §6.1.
  */
+import type { ContractErrorCode } from '../contract/validate'
 
 /** Gaia verdict headlines. §14.1. The client never recomputes the verdict. */
 export const verdictHeadlines = {
@@ -124,6 +125,22 @@ export const datasetErrors = {
 } as const
 
 export type DatasetErrorCode = keyof typeof datasetErrors
+
+/**
+ * Sentences shown for a failed static load. The key is the `ContractError` code.
+ * `invalid` covers a malformed document or an HTTP failure other than a missing dataset.
+ */
+export const loadErrors = {
+  not_found: 'This dataset does not exist.',
+  integrity_failed: 'The dataset failed an integrity check and was not loaded.',
+  unsupported_version: 'Unsupported data version.',
+  invalid: 'The dataset is invalid and was not loaded.',
+} as const satisfies Record<ContractErrorCode, string>
+
+/** User-facing sentence for a `ContractError` code. */
+export function datasetErrorMessage(code: ContractErrorCode): string {
+  return loadErrors[code]
+}
 
 /** Partial-dataset banner. §6.1, referenced from §15.2. */
 export function framesNotFetched(count: number): string {

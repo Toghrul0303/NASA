@@ -38,6 +38,7 @@ import {
 import type { Dataset } from '../../data/dataset'
 import { useWorkspaceStore, type SedState } from '../../state/store'
 import { drawMarkers, hitTestMarkers, type MarkerGeom } from '../sedDraw'
+import { LambdaTimeView } from './LambdaTimeView'
 
 const numFormat = format('.4~g')
 
@@ -167,17 +168,8 @@ function projectPoints(
   return projected
 }
 
-function LambdaTimePlaceholder() {
-  return (
-    <div className="sed-placeholder" role="status">
-      <p>{sedCopy.lambdaTimePending}</p>
-    </div>
-  )
-}
-
 function SedPlot({ dataset, sed, points }: { dataset: Dataset; sed: SedState; points: readonly SedPoint[] }) {
   const openFrameInBlink = useWorkspaceStore((state) => state.openFrameInBlink)
-  const setSed = useWorkspaceStore((state) => state.setSed)
   const stageRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const projectedRef = useRef<Projected[]>([])
@@ -286,10 +278,10 @@ function SedPlot({ dataset, sed, points }: { dataset: Dataset; sed: SedState; po
       obsTimeUtc: point.obs_time_utc,
       epochId: point.epoch_id,
       detector: point.detector,
-      lambdaUm: numFormat(point.lambda_um),
-      bandwidthUm: numFormat(point.bandwidth_um),
-      fluxMjy: flux === null ? '' : numFormat(flux),
-      fluxErrMjy: err === null || !Number.isFinite(err) ? '' : numFormat(err),
+      lambdaUm: String(point.lambda_um),
+      bandwidthUm: String(point.bandwidth_um),
+      fluxMjy: flux === null ? '' : String(flux),
+      fluxErrMjy: err === null || !Number.isFinite(err) ? '' : String(err),
       contamination: contaminationText(dataset, point.frame_index),
       flagged: point.flagged,
     })
@@ -361,32 +353,6 @@ function SedPlot({ dataset, sed, points }: { dataset: Dataset; sed: SedState; po
 
   return (
     <div className="sed-view">
-      <div className="sed-row" role="group" aria-label={sedCopy.plotLabel}>
-        <button
-          type="button"
-          className={`sed-toggle ${sed.logX ? 'liquid-glass-btn-active' : 'liquid-glass-btn'}`}
-          aria-pressed={sed.logX}
-          onClick={() => setSed({ logX: !sed.logX })}
-        >
-          {sedCopy.logWavelength}
-        </button>
-        <button
-          type="button"
-          className={`sed-toggle ${sed.asinhY ? 'liquid-glass-btn-active' : 'liquid-glass-btn'}`}
-          aria-pressed={sed.asinhY}
-          onClick={() => setSed({ asinhY: !sed.asinhY })}
-        >
-          {sedCopy.asinhFlux}
-        </button>
-        <button
-          type="button"
-          className={`sed-toggle ${sed.showLines ? 'liquid-glass-btn-active' : 'liquid-glass-btn'}`}
-          aria-pressed={sed.showLines}
-          onClick={() => setSed({ showLines: !sed.showLines })}
-        >
-          {sedCopy.lineMarkers}
-        </button>
-      </div>
       <div ref={stageRef} className="sed-stage">
         {width >= MARGIN.left + MARGIN.right + 8 ? (
           <>
@@ -521,11 +487,13 @@ function SedPlot({ dataset, sed, points }: { dataset: Dataset; sed: SedState; po
   )
 }
 
-/** SED tab. Both views share the photometry controls. Lambda-time is a placeholder until the next step. */
+/** SED tab. Both views share the photometry controls. §13. */
 export function SedTool() {
   const dataset = useWorkspaceStore((state) => state.dataset.dataset)
   const sed = useWorkspaceStore((state) => state.tool.sed)
   const setSed = useWorkspaceStore((state) => state.setSed)
+  const splitRef = useRef<HTMLDivElement>(null)
+  const [splitWidth, setSplitWidth] = useState(0)
   const present = useMemo(() => {
     if (!dataset) return new Set<number>()
     return new Set<number>(enabledDetectors(dataset.frames.epochs))
@@ -540,6 +508,20 @@ export function SedTool() {
       epochSlice: sed.epochSlice,
     })
   }, [dataset, sed.aperture, sed.hideFlagged, sed.detectors, sed.hiddenEpochs, sed.epochSlice])
+
+  useLayoutEffect(() => {
+    const node = splitRef.current
+    if (!node) return
+    const read = (next: number) => {
+      setSplitWidth((current) => (Math.abs(current - next) < 0.5 ? current : next))
+    }
+    read(node.clientWidth)
+    const observer = new ResizeObserver((entries) => {
+      read(entries[0]?.contentRect.width ?? 0)
+    })
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [sed.view, sed.epochSlice])
 
   if (!dataset) return null
   const missing = countWithoutPhotometry(dataset.sed, sed.aperture)
@@ -674,6 +656,33 @@ export function SedTool() {
         </fieldset>
       </div>
 
+      <div className="sed-row">
+        <button
+          type="button"
+          className={`sed-toggle ${sed.logX ? 'liquid-glass-btn-active' : 'liquid-glass-btn'}`}
+          aria-pressed={sed.logX}
+          onClick={() => setSed({ logX: !sed.logX })}
+        >
+          {sedCopy.logWavelength}
+        </button>
+        <button
+          type="button"
+          className={`sed-toggle ${sed.asinhY ? 'liquid-glass-btn-active' : 'liquid-glass-btn'}`}
+          aria-pressed={sed.asinhY}
+          onClick={() => setSed({ asinhY: !sed.asinhY })}
+        >
+          {sedCopy.asinhFlux}
+        </button>
+        <button
+          type="button"
+          className={`sed-toggle ${sed.showLines ? 'liquid-glass-btn-active' : 'liquid-glass-btn'}`}
+          aria-pressed={sed.showLines}
+          onClick={() => setSed({ showLines: !sed.showLines })}
+        >
+          {sedCopy.lineMarkers}
+        </button>
+      </div>
+
       <div className="ws-seg liquid-glass-bar" role="radiogroup" aria-label={sedCopy.viewLabel}>
         <button
           type="button"
@@ -695,7 +704,32 @@ export function SedTool() {
         </button>
       </div>
 
-      {sed.view === 'lambdaTime' ? <LambdaTimePlaceholder /> : <SedPlot dataset={dataset} sed={sed} points={points} />}
+      {sed.view === 'lambdaTime' ? (
+        <div
+          ref={splitRef}
+          className={sed.epochSlice !== null && splitWidth >= 640 ? 'lt-side' : 'lt-stack'}
+        >
+          <LambdaTimeView
+            dataset={dataset}
+            sed={sed}
+            points={points}
+            epochs={epochs}
+            onEpochHeader={(epochId) => {
+              if (sed.epochSlice === epochId) {
+                setSed({ epochSlice: null })
+                return
+              }
+              setSed({
+                epochSlice: epochId,
+                hiddenEpochs: sed.hiddenEpochs.filter((id) => id !== epochId),
+              })
+            }}
+          />
+          {sed.epochSlice !== null ? <SedPlot dataset={dataset} sed={sed} points={points} /> : null}
+        </div>
+      ) : (
+        <SedPlot dataset={dataset} sed={sed} points={points} />
+      )}
 
       <footer className="sed-provenance">
         <p>

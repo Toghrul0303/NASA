@@ -2431,3 +2431,101 @@ html.light .ws-gaia-summary:focus-visible {
   display: grid;
   gap: 2px;
 }
+
+.lt-side {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.lt-stack {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+}
+
+.lt-view {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.lt-stage {
+  min-height: 360px;
+}
+
+.lt-epoch {
+  position: absolute;
+  z-index: 2;
+  top: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 4px;
+  overflow: hidden;
+  border: 1px solid var(--ws-border);
+  border-radius: 9999px;
+  background: var(--ws-bg);
+  color: var(--ws-fg);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.lt-epoch[aria-pressed='true'] {
+  border-color: rgb(240, 255, 60);
+}
+
+.lt-epoch-hidden {
+  opacity: 0.45;
+}
+
+.lt-epoch:focus-visible {
+  outline: 2px solid var(--ws-primary);
+  outline-offset: 2px;
+}
+
+.lt-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  flex: 0 0 auto;
+}
+
+.lt-break {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+
+.lt-brush {
+  fill: rgba(240, 255, 60, 0.14);
+  stroke: rgb(240, 255, 60);
+  stroke-width: 1;
+  cursor: grab;
+}
+
+.lt-brush-edge {
+  stroke: rgb(240, 255, 60);
+  stroke-width: 8;
+  stroke-opacity: 0;
+  cursor: ns-resize;
+}
+
+.lt-brush-hit {
+  pointer-events: auto;
+}
+
+.lt-brush-hit:focus-visible .lt-brush {
+  stroke-width: 2;
+}
+
+.lt-note {
+  margin: 0;
+  color: var(--ws-fg-muted);
+  font-size: 12px;
+}

@@ -73,9 +73,9 @@ const ALADIN_HUD_SELECTOR = [
 
 const SHADOW_GLASS_CSS = `
   button, [role="button"], select, .aladin-btn, .aladin-location, .aladin-projection-control, .aladin-fov {
-    background: rgba(12, 14, 20, 0.52) !important;
-    backdrop-filter: blur(18px) saturate(160%) !important;
-    -webkit-backdrop-filter: blur(18px) saturate(160%) !important;
+    background: rgba(14, 16, 22, 0.46) !important;
+    backdrop-filter: blur(16px) saturate(150%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(150%) !important;
     border: 1px solid rgba(255, 255, 255, 0.16) !important;
     border-radius: 9999px !important;
     color: rgba(255, 255, 255, 0.9) !important;
@@ -83,6 +83,7 @@ const SHADOW_GLASS_CSS = `
   button:hover, [role="button"]:hover, .aladin-btn:hover {
     border-color: rgba(240, 255, 60, 0.72) !important;
     color: rgb(240, 255, 60) !important;
+    background: rgba(240, 255, 60, 0.14) !important;
   }
 `
 
@@ -344,7 +345,7 @@ export function AladinMap({
       {status === 'ready' && surveyUnavailable ? (
         <div
           role="status"
-          className="liquid-glass-bar pointer-events-auto absolute left-1/2 top-3 z-20 w-[min(100%-1.5rem,36rem)] -translate-x-1/2 rounded-2xl px-4 py-3 text-sm text-white"
+          className="liquid-glass-bar pointer-events-auto absolute left-1/2 top-14 z-20 w-[min(100%-1.5rem,36rem)] -translate-x-1/2 rounded-2xl px-4 py-3 text-sm text-white"
         >
           <p>Base sky survey unavailable. Positions and overlays still work.</p>
           <button
@@ -363,17 +364,34 @@ export function AladinMap({
         </div>
       ) : null}
       {status === 'ready' ? (
-        <div className="ws-map-toolbar">
-          <label className="ws-map-layer">
-            <input
-              type="checkbox"
-              checked={gaiaLayerEnabled && gaiaLayerOn}
-              disabled={!gaiaLayerEnabled}
-              onChange={(event) => onGaiaLayerChange?.(event.target.checked)}
-            />
-            {mapCopy.gaiaLayer}
-          </label>
-        </div>
+        <label
+          className={
+            gaiaLayerEnabled && gaiaLayerOn
+              ? 'ws-map-layer pointer-events-auto liquid-glass-btn-active absolute z-20 h-9 px-3.5 gap-2 text-xs font-medium'
+              : 'ws-map-layer pointer-events-auto liquid-glass-btn absolute z-20 h-9 px-3.5 gap-2 text-xs font-medium'
+          }
+          style={{
+            top: 'var(--aladin-gaia-top, 12px)',
+            left: 'var(--aladin-gaia-left, 12px)',
+          }}
+        >
+          <input
+            type="checkbox"
+            className="ws-sr"
+            checked={gaiaLayerEnabled && gaiaLayerOn}
+            disabled={!gaiaLayerEnabled}
+            onChange={(event) => onGaiaLayerChange?.(event.target.checked)}
+          />
+          <span
+            className={
+              gaiaLayerEnabled && gaiaLayerOn
+                ? 'w-2 h-2 rounded-full bg-[rgb(240,255,60)] shadow-[0_0_8px_rgba(240,255,60,0.8)] shrink-0'
+                : 'w-2 h-2 rounded-full bg-white/30 shrink-0'
+            }
+            aria-hidden="true"
+          />
+          <span>{mapCopy.gaiaLayer}</span>
+        </label>
       ) : null}
       {status === 'ready' && cube ? (
         <CubeControl cube={cube} wavelength={cubeWavelength} onDisable={() => setCube(null)} adapterRef={adapterRef} />

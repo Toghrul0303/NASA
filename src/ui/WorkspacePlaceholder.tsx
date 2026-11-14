@@ -20,7 +20,16 @@ import { loadRegistry, type RegistryEntry } from '../data/registry'
 import { useWorkspaceStore } from '../state/store'
 import { createUrlSync, wrapRa, type UrlSync, type UrlSyncWindow } from '../state/urlSync'
 import { applyTheme } from './theme'
-import { AsteriskIcon, ChevronDownIcon, MoonIcon, SunIcon } from './icons'
+import {
+  AsteriskIcon,
+  ChevronDownIcon,
+  HomeIcon,
+  InfoIcon,
+  MoonIcon,
+  OrbitIcon,
+  SunIcon,
+  TelescopeIcon,
+} from './icons'
 import { Skeleton } from './Skeleton'
 import { Lab } from '../lab/Lab'
 
@@ -39,8 +48,8 @@ const LAB_MIN = 30
 const LAB_MAX = 60
 const LAB_DEFAULT = 45
 
-/** Aladin's top row: projection, fullscreen, coordinate frame, and the coordinate box. */
-const ALADIN_TOP_ROW = '.aladin-projection-control, .aladin-fullScreen-control, .aladin-cooFrame, .aladin-location'
+/** Aladin's top row + HUD controls so horizontal HUD pills stay aligned with zero overlap. */
+const ALADIN_TOP_ROW = '.aladin-projection-control, .aladin-fullScreen-control, .aladin-cooFrame, .aladin-location, .ws-open-lab-btn, .ws-map-layer'
 
 function syncMapChrome(map: HTMLElement): void {
   const mapRect = map.getBoundingClientRect()
@@ -52,6 +61,34 @@ function syncMapChrome(map: HTMLElement): void {
   }
   if (bottom > 0) map.style.setProperty('--aladin-chrome-bottom', `${bottom}px`)
   else map.style.removeProperty('--aladin-chrome-bottom')
+
+  const cta = map.querySelector<HTMLElement>('.ws-open-lab-btn')
+  const ctaRect = cta?.getBoundingClientRect()
+  const rightOffset =
+    ctaRect && ctaRect.width > 0 ? Math.max(12, Math.round(mapRect.right - ctaRect.left + 8)) : 12
+  map.style.setProperty('--aladin-proj-right', `${rightOffset}px`)
+
+  const loc = map.querySelector<HTMLElement>('.aladin-location')
+  const locRect = loc?.getBoundingClientRect()
+  const gaia = map.querySelector<HTMLElement>('.ws-map-layer')
+  const gaiaWidth = gaia ? gaia.getBoundingClientRect().width : 0
+  const proj = map.querySelector<HTMLElement>('.aladin-projection-control')
+  const projWidth = proj ? proj.getBoundingClientRect().width : 0
+
+  if (locRect && locRect.width > 0) {
+    const inlineLeft = Math.max(12, Math.round(locRect.right - mapRect.left + 8))
+    const rightSpaceStart = mapRect.width - rightOffset - (projWidth > 0 ? projWidth + 8 : 0)
+    if (gaiaWidth > 0 && inlineLeft + gaiaWidth > rightSpaceStart) {
+      map.style.setProperty('--aladin-gaia-left', '12px')
+      map.style.setProperty('--aladin-gaia-top', '56px')
+    } else {
+      map.style.setProperty('--aladin-gaia-left', `${inlineLeft}px`)
+      map.style.setProperty('--aladin-gaia-top', '12px')
+    }
+  } else {
+    map.style.setProperty('--aladin-gaia-left', '12px')
+    map.style.setProperty('--aladin-gaia-top', '12px')
+  }
 }
 
 function shortDataVersion(dataVersion: string): string {
@@ -106,6 +143,7 @@ export function WorkspacePage() {
   const setTheme = useWorkspaceStore((state) => state.setTheme)
   const [entries, setEntries] = useState<readonly RegistryEntry[]>([])
   const [labPct, setLabPct] = useState(LAB_DEFAULT)
+  const [labDismissed, setLabDismissed] = useState(false)
   const mapRef = useRef<HTMLDivElement>(null)
   const mapApi = useRef<AladinMapHandle | null>(null)
   const syncRef = useRef<UrlSync | null>(null)
@@ -230,7 +268,7 @@ export function WorkspacePage() {
   const ready = datasetState.status === 'ready' && dataset !== null
   const footprint = useMemo(() => (ready && dataset ? footprintPolygon(dataset.meta.grid) : null), [ready, dataset])
   const gaia = ready && dataset ? dataset.gaia : null
-  const labOpen = datasetState.status !== 'ready' || tool !== 'map'
+  const labOpen = ready ? tool !== 'map' : !labDismissed
   const options = useMemo(() => {
     const slug = datasetState.slug
     if (!slug || entries.some((entry) => entry.slug === slug)) return entries
@@ -248,11 +286,16 @@ export function WorkspacePage() {
   const shellStyle = { '--lab-pct': `${labPct}%` } as CSSProperties
 
   function toggleLab(): void {
+    if (!ready) {
+      setLabDismissed((current) => !current)
+      return
+    }
     setTool(tool === 'map' ? 'blink' : 'map')
   }
 
   function chooseSlug(slug: string): void {
     if (!slug) return
+    setLabDismissed(false)
     syncRef.current?.onSlugChanged(slug)
     void loadDataset(slug).then(() => {
       const state = useWorkspaceStore.getState()
@@ -331,41 +374,76 @@ export function WorkspacePage() {
       onClickCapture={onEmbedClick}
     >
       {embed ? null : (
-        <header className="flex-none bg-white/90 dark:bg-black/75 backdrop-blur-xl border-b border-black/15 dark:border-white/[0.08] px-4 py-2 flex flex-wrap lg:grid lg:grid-cols-[1fr_auto_1fr] items-center justify-between gap-3 z-30 text-zinc-950 dark:text-white">
+        <header className="h-14 flex-none bg-[#05060A]/85 backdrop-blur-xl border-b border-white/[0.10] text-white px-4 flex lg:grid lg:grid-cols-[1fr_auto_1fr] items-center justify-between gap-3 z-30">
           <div className="justify-self-start flex items-center gap-3 min-w-0">
-            <a href="/" className="brand-mark shrink-0 !text-zinc-950 dark:!text-white" aria-label="ExoTrace home">
-              <AsteriskIcon className="w-[18px] h-[18px]" />
+            <a href="/" className="brand-mark shrink-0 !text-white" aria-label="ExoTrace home">
+              <AsteriskIcon />
               <span className="brand-mark__word">ExoTrace</span>
             </a>
-            <span className="h-4 w-px bg-black/15 dark:bg-white/15 shrink-0" aria-hidden="true" />
+            <span className="h-4 w-px bg-white/15 shrink-0" aria-hidden="true" />
             <h1
-              className="m-0 text-xs sm:text-sm font-medium text-zinc-900 dark:text-white/85 truncate max-w-[180px] lg:max-w-[260px]"
+              className="m-0 px-3 py-1 rounded-full bg-white/[0.05] border border-white/[0.12] text-xs sm:text-sm font-medium text-white/90 truncate max-w-[160px] lg:max-w-[200px] xl:max-w-[240px]"
               title={headerTitle}
             >
-              {datasetState.status === 'loading' ? <Skeleton className="h-4 w-36 rounded-full" /> : headerTitle}
+              {datasetState.status === 'loading' ? <Skeleton className="h-4 w-28 rounded-full bg-white/10" /> : headerTitle}
             </h1>
           </div>
 
-          <div className="justify-self-center liquid-glass-bar rounded-full px-2 py-1 flex items-center gap-1.5 max-w-full">
+          <nav
+            aria-label="Main navigation"
+            className="justify-self-center hidden md:flex items-center gap-1 rounded-full bg-white/[0.05] backdrop-blur-xl border border-white/[0.14] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18),0_8px_28px_rgba(0,0,0,0.45)] px-1.5 py-1"
+          >
+            <a
+              href="/"
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] leading-none text-white/65 hover:text-white transition-colors whitespace-nowrap"
+            >
+              <HomeIcon className="w-4 h-4 shrink-0" />
+              <span>Home</span>
+            </a>
+            <a
+              href="/#targets"
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] leading-none text-white/65 hover:text-white transition-colors whitespace-nowrap"
+            >
+              <TelescopeIcon className="w-4 h-4 shrink-0" />
+              <span>Targets</span>
+            </a>
+            <a
+              href="/#about"
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] leading-none text-white/65 hover:text-white transition-colors whitespace-nowrap"
+            >
+              <InfoIcon className="w-4 h-4 shrink-0" />
+              <span>About</span>
+            </a>
+            <a
+              href="/workspace"
+              aria-current="page"
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] leading-none font-medium bg-[rgba(240,255,60,0.14)] border border-[rgba(240,255,60,0.72)] text-[rgb(240,255,60)] shadow-[inset_0_1px_0_0_rgba(240,255,60,0.28)] whitespace-nowrap"
+            >
+              <OrbitIcon className="w-4 h-4 shrink-0" />
+              <span>Workspace</span>
+            </a>
+          </nav>
+
+          <div className="justify-self-end flex items-center gap-1.5 shrink-0">
             {ready ? (
-              <div className="hidden md:flex items-center gap-1.5">
-                <span className="text-[11px] font-medium text-zinc-800 dark:text-white/80 px-2.5 py-0.5 rounded-full bg-black/[0.04] dark:bg-white/[0.05] border border-black/15 dark:border-white/10 whitespace-nowrap">
+              <div className="hidden lg:flex items-center gap-1.5">
+                <span className="text-[11px] font-medium text-white/80 px-2.5 py-1 rounded-full bg-white/[0.05] border border-white/[0.12] whitespace-nowrap">
                   {tierLabel(dataset.meta.tier)}
                 </span>
                 <span
                   className={
                     dataset.meta.status === 'partial'
-                      ? 'rounded-full px-2.5 py-0.5 text-[11px] bg-amber-500/15 text-amber-900 dark:text-amber-300 border border-amber-600/40 dark:border-amber-400/40 whitespace-nowrap'
-                      : 'rounded-full px-2.5 py-0.5 text-[11px] bg-emerald-500/15 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-300 border border-emerald-600/30 dark:border-emerald-500/25 inline-flex items-center gap-1.5 whitespace-nowrap'
+                      ? 'rounded-full px-2.5 py-1 text-[11px] bg-amber-500/15 text-amber-300 border border-amber-400/40 whitespace-nowrap'
+                      : 'rounded-full px-2.5 py-1 text-[11px] bg-emerald-500/10 text-emerald-300 border border-emerald-500/25 inline-flex items-center gap-1.5 whitespace-nowrap'
                   }
                 >
                   {dataset.meta.status === 'complete' ? (
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" aria-hidden="true" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
                   ) : null}
                   {dataset.meta.status}
                 </span>
                 <span
-                  className="font-mono tabular-nums text-[11px] text-zinc-700 dark:text-white/65 px-2.5 py-0.5 rounded-full bg-black/[0.04] dark:bg-white/[0.04] border border-black/15 dark:border-white/10 whitespace-nowrap"
+                  className="hidden xl:inline-flex font-mono tabular-nums text-[11px] text-white/70 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.12] whitespace-nowrap"
                   title={dataset.meta.data_version}
                 >
                   <span className="ws-sr">Data version</span>
@@ -377,27 +455,23 @@ export function WorkspacePage() {
             <label className="relative inline-flex items-center">
               <span className="ws-sr">Target</span>
               <select
-                className="liquid-glass-btn appearance-none rounded-full text-xs pl-3 pr-7 py-1 max-w-[210px] truncate text-zinc-900 dark:text-white/90 focus:border-[rgb(240,255,60)]"
+                className="liquid-glass-btn appearance-none rounded-full text-xs pl-3 pr-7 h-8 max-w-[140px] sm:max-w-[165px] xl:max-w-[200px] truncate !text-white/90 focus:border-[rgb(240,255,60)]"
                 value={datasetState.slug ?? ''}
                 onChange={(event) => {
                   chooseSlug(event.target.value)
                 }}
               >
-                <option value="" className="bg-white text-zinc-900 dark:bg-[#0B0C10] dark:text-white">
+                <option value="" className="bg-[#0B0C10] text-white">
                   Pick a target
                 </option>
                 {tier1.length > 0 ? (
-                  <optgroup label="Tier 1" className="bg-white text-zinc-900 dark:bg-[#0B0C10] dark:text-white">
+                  <optgroup label="Tier 1" className="bg-[#0B0C10] text-white">
                     {tier1.map((entry) => (
                       <option
                         key={entry.slug}
                         value={entry.slug}
                         disabled={!entry.available}
-                        className={
-                          entry.available
-                            ? 'bg-white text-zinc-900 dark:bg-[#0B0C10] dark:text-white'
-                            : 'bg-white text-zinc-400 dark:bg-[#0B0C10] dark:text-white/35'
-                        }
+                        className={entry.available ? 'bg-[#0B0C10] text-white' : 'bg-[#0B0C10] text-white/35'}
                       >
                         {entry.title ?? entry.slug}
                       </option>
@@ -405,17 +479,13 @@ export function WorkspacePage() {
                   </optgroup>
                 ) : null}
                 {tier15.length > 0 ? (
-                  <optgroup label="Tier 1.5" className="bg-white text-zinc-900 dark:bg-[#0B0C10] dark:text-white">
+                  <optgroup label="Tier 1.5" className="bg-[#0B0C10] text-white">
                     {tier15.map((entry) => (
                       <option
                         key={entry.slug}
                         value={entry.slug}
                         disabled={!entry.available}
-                        className={
-                          entry.available
-                            ? 'bg-white text-zinc-900 dark:bg-[#0B0C10] dark:text-white'
-                            : 'bg-white text-zinc-400 dark:bg-[#0B0C10] dark:text-white/35'
-                        }
+                        className={entry.available ? 'bg-[#0B0C10] text-white' : 'bg-[#0B0C10] text-white/35'}
                       >
                         {entry.title ?? entry.slug}
                       </option>
@@ -423,12 +493,12 @@ export function WorkspacePage() {
                   </optgroup>
                 ) : null}
               </select>
-              <ChevronDownIcon className="pointer-events-none absolute right-2.5 w-3.5 h-3.5 text-zinc-500 dark:text-white/60" />
+              <ChevronDownIcon className="pointer-events-none absolute right-2.5 w-3.5 h-3.5 text-white/60" />
             </label>
 
             <button
               type="button"
-              className="liquid-glass-btn px-2.5 py-1 text-xs gap-1.5"
+              className="liquid-glass-btn h-8 px-2.5 text-xs gap-1.5 !text-white/85"
               aria-pressed={theme === 'dark'}
               aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -436,19 +506,6 @@ export function WorkspacePage() {
               {theme === 'dark' ? <SunIcon className="w-3.5 h-3.5" /> : <MoonIcon className="w-3.5 h-3.5" />}
               <span className="hidden sm:inline">{theme === 'dark' ? 'Light' : 'Dark'}</span>
             </button>
-          </div>
-
-          <div className="justify-self-end flex items-center gap-2">
-            {ready ? (
-              <button
-                type="button"
-                className="hidden lg:inline-flex liquid-glass-cta rounded-full px-3.5 py-1.5 text-xs font-medium items-center gap-1.5"
-                aria-expanded={tool !== 'map'}
-                onClick={toggleLab}
-              >
-                {tool === 'map' ? 'Open Lab' : 'Close Lab'}
-              </button>
-            ) : null}
           </div>
         </header>
       )}
@@ -479,26 +536,23 @@ export function WorkspacePage() {
               }}
             />
           </Suspense>
-          {embed && ready && tool === 'map' ? (
-            <button
-              type="button"
-              className="ws-open-lab liquid-glass-cta rounded-full px-3.5 py-1.5 text-xs font-medium"
-              onClick={toggleLab}
-            >
-              Open Lab
-            </button>
-          ) : null}
-        </div>
-        {datasetState.status === 'ready' ? (
           <button
             type="button"
-            className="ws-lab-toggle liquid-glass-cta !rounded-none text-xs font-medium"
-            aria-expanded={tool !== 'map'}
+            className="ws-open-lab-btn hidden lg:inline-flex liquid-glass-cta absolute top-3 right-3 z-30 h-9 px-4 rounded-full text-xs font-medium items-center gap-1.5 whitespace-nowrap"
+            aria-expanded={labOpen}
             onClick={toggleLab}
           >
-            {tool === 'map' ? 'Open Lab' : 'Close Lab'}
+            {labOpen ? 'Close Lab' : 'Open Lab'}
           </button>
-        ) : null}
+        </div>
+        <button
+          type="button"
+          className="ws-lab-toggle liquid-glass-cta !rounded-none text-xs font-medium"
+          aria-expanded={labOpen}
+          onClick={toggleLab}
+        >
+          {labOpen ? 'Close Lab' : 'Open Lab'}
+        </button>
         {/* eslint-disable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex */}
         <div
           className="ws-separator group w-1.5 bg-transparent hover:bg-[rgba(240,255,60,0.4)] focus-visible:bg-[rgba(240,255,60,0.6)] transition-colors cursor-col-resize items-center justify-center"

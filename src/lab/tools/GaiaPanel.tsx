@@ -355,7 +355,9 @@ function GaiaPanelView({
 
       {unavailable ? null : (
         <details className="ws-gaia-block">
-          <summary>{gaiaCopy.queryDetails}</summary>
+          <summary className="cursor-pointer select-none text-xs font-medium text-zinc-700 dark:text-white/75 hover:text-black dark:hover:text-[rgb(240,255,60)] transition-colors">
+            {gaiaCopy.queryDetails}
+          </summary>
           <dl className="ws-gaia-facts">
             <Fact label={gaiaCopy.executedUtc} value={gaia.query.executed_utc} />
             <Fact label={gaiaCopy.radiusArcsec} value={formatQuantity(gaia.query.radius_arcsec)} />

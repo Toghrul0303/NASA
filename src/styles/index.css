@@ -1283,3 +1283,244 @@ html.light {
   color: var(--ws-fg);
   font-size: 12px;
 }
+
+.ws-seg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  width: fit-content;
+  padding: 2px;
+  border: 1px solid var(--ws-border);
+  border-radius: 999px;
+}
+
+.ws-seg button {
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ws-fg);
+  min-height: 28px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ws-seg button[aria-checked='true'] {
+  background: var(--ws-primary);
+  color: #000;
+}
+
+.ws-det {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ws-det-btn {
+  position: relative;
+  min-width: 44px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--ws-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ws-fg);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ws-det-btn[aria-checked='true'] {
+  border-color: transparent;
+  background: var(--ws-primary);
+  color: #000;
+}
+
+.ws-det-btn[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.ws-tip {
+  position: absolute;
+  z-index: 3;
+  display: none;
+  padding: 4px 8px;
+  border: 1px solid var(--ws-border);
+  border-radius: 8px;
+  background: var(--ws-bg);
+  color: var(--ws-fg);
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.ws-det-btn .ws-tip {
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.ws-tip.is-open,
+.ws-det-btn:hover .ws-tip,
+.ws-det-btn:focus .ws-tip,
+.ws-det-btn:focus-visible .ws-tip {
+  display: block;
+}
+
+.ws-wave {
+  display: grid;
+  gap: 6px;
+}
+
+.ws-wave-plot {
+  overflow: hidden;
+  border: 1px solid var(--ws-border);
+  border-radius: 10px;
+  background: var(--ws-muted);
+}
+
+.ws-wave-plot svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: none;
+  cursor: ew-resize;
+}
+
+.ws-wave-bar {
+  fill: #8aa4c8;
+}
+
+.ws-wave-window {
+  fill: rgba(228, 242, 34, 0.28);
+}
+
+.ws-wave-centre {
+  stroke: var(--ws-primary);
+  stroke-width: 1.5;
+}
+
+.ws-range-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.ws-range {
+  width: 8rem;
+  accent-color: var(--ws-primary);
+}
+
+.ws-caption {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.ws-cont {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ws-cont-icon {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  fill: currentColor;
+}
+
+.ws-cont--severe .ws-cont-icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.ws-cont--neutral {
+  color: var(--ws-fg);
+}
+
+.ws-cont--neutral .ws-cont-icon {
+  color: var(--contamination-neutral);
+}
+
+.ws-cont--amber {
+  background: var(--contamination-amber);
+  color: #140e00;
+}
+
+.ws-cont--severe {
+  background: var(--contamination-red);
+  color: #fff;
+}
+
+.ws-pill[aria-pressed='true'] {
+  border-color: transparent;
+  background: var(--ws-primary);
+  color: #000;
+}
+
+.ws-blink-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ws-time {
+  display: grid;
+  gap: 8px;
+}
+
+.ws-time-track {
+  position: relative;
+  min-height: 72px;
+  touch-action: none;
+  cursor: pointer;
+}
+
+.ws-time-track svg {
+  display: block;
+  overflow: visible;
+}
+
+.ws-epoch-sep {
+  stroke: var(--ws-fg);
+  stroke-opacity: 0.4;
+  stroke-width: 1;
+}
+
+.ws-epoch-label {
+  fill: var(--ws-fg);
+  font-size: 11px;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+.ws-time-tick {
+  stroke: var(--contamination-neutral);
+  stroke-width: 1.5;
+}
+
+.ws-time-tip {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  display: grid;
+  padding: 4px 8px;
+  border: 1px solid var(--ws-border);
+  border-radius: 8px;
+  background: var(--ws-bg);
+  color: var(--ws-fg);
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translate(-50%, -100%);
+}

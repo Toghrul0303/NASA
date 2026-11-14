@@ -387,8 +387,11 @@ export function FrameCanvas({
   }, [])
 
   useEffect(() => {
+    // `drawOverlay` is read from props at paint time. Without it here, toggling
+    // an overlay (or stepping to a frame whose overlay closure changed while the
+    // offscreen image stayed cached) would leave the previous vectors on screen.
     scheduleRef.current()
-  }, [offscreen, frame.zoom, frame.panX, frame.panY, H, W, pixelScaleArcsec])
+  }, [offscreen, frame.zoom, frame.panX, frame.panY, H, W, pixelScaleArcsec, drawOverlay])
 
   useEffect(() => {
     const stage = stageRef.current

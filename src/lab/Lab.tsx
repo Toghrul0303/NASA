@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { datasetErrorMessage, framesNotFetched } from '../config/copy'
 import { isToolId, TOOLS, toolById } from '../config/tools'
 import type { Dataset } from '../data/dataset'
@@ -5,7 +6,8 @@ import { useWorkspaceStore } from '../state/store'
 import { CloseIcon } from '../ui/icons'
 import { Skeleton } from '../ui/Skeleton'
 import { Tabs } from '../ui/Tabs'
-import { BlinkStub } from './BlinkStub'
+
+const BlinkTool = lazy(() => import('./tools/BlinkTool').then((mod) => ({ default: mod.BlinkTool })))
 
 const LAB_TOOLS = TOOLS.filter((tool) => !tool.closesLab)
 const LOAD_STEPS = ['meta', 'files', 'verification'] as const
@@ -75,7 +77,13 @@ function DatasetState({ onRetry }: { onRetry: () => void }) {
     )
   }
 
-  if (tool === 'blink') return <BlinkStub />
+  if (tool === 'blink') {
+    return (
+      <Suspense fallback={<div className="ws-state" role="status">Loading blink</div>}>
+        <BlinkTool />
+      </Suspense>
+    )
+  }
 
   const active = toolById(tool)
   return (

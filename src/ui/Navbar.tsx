@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { useWorkspaceStore } from '../state/store'
-import { AsteriskIcon, HomeIcon, InfoIcon, LoginIcon, OrbitIcon } from './icons'
+import { AsteriskIcon, HomeIcon, InfoIcon, LoginIcon, OrbitIcon, UsersIcon } from './icons'
+import { communityCopy } from '../config/copy'
 
 type NavbarSurface = 'home' | 'workspace'
 
@@ -155,7 +156,9 @@ export function Navbar({ surface, rightSlot }: NavbarProps) {
 
   const resolved: NavbarSurface = surface ?? (pathname === '/workspace' ? 'workspace' : 'home')
   const onWorkspace = resolved === 'workspace'
-  const homeActive = !onWorkspace && pathname !== '/workspace' && pathname !== '/login' && pathname !== '/signup'
+  const communityActive = pathname === '/community'
+  const homeActive =
+    !onWorkspace && pathname !== '/workspace' && pathname !== '/login' && pathname !== '/signup' && !communityActive
   const aboutHref = pathname === '/' ? '#about' : '/#about'
 
   function onAboutClick(event: MouseEvent<HTMLAnchorElement>) {
@@ -213,6 +216,14 @@ export function Navbar({ surface, rightSlot }: NavbarProps) {
           >
             <OrbitIcon className="w-4 h-4" />
             <span>Workspace</span>
+          </a>
+          <a
+            href="/community"
+            aria-current={communityActive ? 'page' : undefined}
+            className={`${ITEM_BASE} ${communityActive ? ITEM_ACTIVE : ITEM_IDLE}`}
+          >
+            <UsersIcon className="w-4 h-4" />
+            <span>{communityCopy.navLabel}</span>
           </a>
           <AccountItem pathname={pathname} />
         </div>

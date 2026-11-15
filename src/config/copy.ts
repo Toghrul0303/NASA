@@ -271,6 +271,30 @@ export const tier2Copy = {
   liveComingSoon: 'Live analysis is coming soon. Try the preset.',
 } as const
 
+/** Community concept preview. Nothing on that page is saved or shared. */
+export const communityCopy = {
+  navLabel: 'Community',
+  eyebrow: 'Community',
+  title: 'Analyses, shared',
+  banner: 'Concept preview, not live. Nothing here is saved or shared.',
+  intro: 'A look at how shared analyses could appear. Each card opens a real Tier 1 view in the Lab.',
+  tool: 'Tool',
+  target: 'Target',
+  openAnalysis: 'Open analysis',
+  comment: 'Comment',
+  fork: 'Fork',
+  reproduce: 'Reproduce',
+  comingLater: 'Coming later',
+  roadmapTitle: 'Roadmap',
+  roadmapLabel: 'Roadmap steps',
+} as const
+
+export const roadmapSteps = [
+  { id: 'share', title: 'Share', detail: 'Copy a link or embed code for any view.', status: 'Live now', live: true },
+  { id: 'notebook', title: 'Notebook', detail: 'Keep notes next to an analysis.', status: 'Coming later', live: false },
+  { id: 'community', title: 'Community', detail: 'Publish, comment and fork.', status: 'Coming later', live: false },
+] as const
+
 /** Lab header share buttons. FRONTEND_SPEC §5.4. */
 export const shareCopy = {
   copyLink: 'Copy link',

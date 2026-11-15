@@ -20,18 +20,9 @@ import { loadRegistry, type RegistryEntry } from '../data/registry'
 import { useWorkspaceStore } from '../state/store'
 import { createUrlSync, wrapRa, type UrlSync, type UrlSyncWindow } from '../state/urlSync'
 import { applyTheme } from './theme'
-import {
-  AsteriskIcon,
-  ChevronDownIcon,
-  HomeIcon,
-  InfoIcon,
-  MoonIcon,
-  OrbitIcon,
-  SunIcon,
-  TelescopeIcon,
-} from './icons'
-import { Skeleton } from './Skeleton'
+import { ChevronDownIcon, MoonIcon, SunIcon } from './icons'
 import { Lab } from '../lab/Lab'
+import { Navbar } from './Navbar'
 
 const AladinMap = lazy(() => import('../map/AladinMap').then((mod) => ({ default: mod.AladinMap })))
 
@@ -49,7 +40,8 @@ const LAB_MAX = 60
 const LAB_DEFAULT = 45
 
 /** Aladin's top row + HUD controls so horizontal HUD pills stay aligned with zero overlap. */
-const ALADIN_TOP_ROW = '.aladin-projection-control, .aladin-fullScreen-control, .aladin-cooFrame, .aladin-location, .ws-open-lab-btn, .ws-map-layer'
+const ALADIN_TOP_ROW =
+  '.aladin-projection-control, .aladin-fullScreen-control, .aladin-cooFrame, .aladin-location, .ws-open-lab-btn, .ws-map-layer'
 
 function syncMapChrome(map: HTMLElement): void {
   const mapRect = map.getBoundingClientRect()
@@ -64,8 +56,7 @@ function syncMapChrome(map: HTMLElement): void {
 
   const cta = map.querySelector<HTMLElement>('.ws-open-lab-btn')
   const ctaRect = cta?.getBoundingClientRect()
-  const rightOffset =
-    ctaRect && ctaRect.width > 0 ? Math.max(12, Math.round(mapRect.right - ctaRect.left + 8)) : 12
+  const rightOffset = ctaRect && ctaRect.width > 0 ? Math.max(12, Math.round(mapRect.right - ctaRect.left + 8)) : 12
   map.style.setProperty('--aladin-proj-right', `${rightOffset}px`)
 
   const loc = map.querySelector<HTMLElement>('.aladin-location')
@@ -374,140 +365,89 @@ export function WorkspacePage() {
       onClickCapture={onEmbedClick}
     >
       {embed ? null : (
-        <header className="h-14 flex-none bg-[#05060A]/85 backdrop-blur-xl border-b border-white/[0.10] text-white px-4 flex lg:grid lg:grid-cols-[1fr_auto_1fr] items-center justify-between gap-3 z-30">
-          <div className="justify-self-start flex items-center gap-3 min-w-0">
-            <a href="/" className="brand-mark shrink-0 !text-white" aria-label="ExoTrace home">
-              <AsteriskIcon />
-              <span className="brand-mark__word">ExoTrace</span>
-            </a>
-            <span className="h-4 w-px bg-white/15 shrink-0" aria-hidden="true" />
-            <h1
-              className="m-0 px-3 py-1 rounded-full bg-white/[0.05] border border-white/[0.12] text-xs sm:text-sm font-medium text-white/90 truncate max-w-[160px] lg:max-w-[200px] xl:max-w-[240px]"
-              title={headerTitle}
-            >
-              {datasetState.status === 'loading' ? <Skeleton className="h-4 w-28 rounded-full bg-white/10" /> : headerTitle}
-            </h1>
-          </div>
-
-          <nav
-            aria-label="Main navigation"
-            className="justify-self-center hidden md:flex items-center gap-1 rounded-full bg-white/[0.05] backdrop-blur-xl border border-white/[0.14] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18),0_8px_28px_rgba(0,0,0,0.45)] px-1.5 py-1"
-          >
-            <a
-              href="/"
-              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] leading-none text-white/65 hover:text-white transition-colors whitespace-nowrap"
-            >
-              <HomeIcon className="w-4 h-4 shrink-0" />
-              <span>Home</span>
-            </a>
-            <a
-              href="/#targets"
-              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] leading-none text-white/65 hover:text-white transition-colors whitespace-nowrap"
-            >
-              <TelescopeIcon className="w-4 h-4 shrink-0" />
-              <span>Targets</span>
-            </a>
-            <a
-              href="/#about"
-              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] leading-none text-white/65 hover:text-white transition-colors whitespace-nowrap"
-            >
-              <InfoIcon className="w-4 h-4 shrink-0" />
-              <span>About</span>
-            </a>
-            <a
-              href="/workspace"
-              aria-current="page"
-              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] leading-none font-medium bg-[rgba(240,255,60,0.14)] border border-[rgba(240,255,60,0.72)] text-[rgb(240,255,60)] shadow-[inset_0_1px_0_0_rgba(240,255,60,0.28)] whitespace-nowrap"
-            >
-              <OrbitIcon className="w-4 h-4 shrink-0" />
-              <span>Workspace</span>
-            </a>
-          </nav>
-
-          <div className="justify-self-end flex items-center gap-1.5 shrink-0">
-            {ready ? (
-              <div className="hidden lg:flex items-center gap-1.5">
-                <span className="text-[11px] font-medium text-white/80 px-2.5 py-1 rounded-full bg-white/[0.05] border border-white/[0.12] whitespace-nowrap">
-                  {tierLabel(dataset.meta.tier)}
-                </span>
-                <span
-                  className={
-                    dataset.meta.status === 'partial'
-                      ? 'rounded-full px-2.5 py-1 text-[11px] bg-amber-500/15 text-amber-300 border border-amber-400/40 whitespace-nowrap'
-                      : 'rounded-full px-2.5 py-1 text-[11px] bg-emerald-500/10 text-emerald-300 border border-emerald-500/25 inline-flex items-center gap-1.5 whitespace-nowrap'
-                  }
-                >
-                  {dataset.meta.status === 'complete' ? (
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
-                  ) : null}
-                  {dataset.meta.status}
-                </span>
-                <span
-                  className="hidden xl:inline-flex font-mono tabular-nums text-[11px] text-white/70 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.12] whitespace-nowrap"
-                  title={dataset.meta.data_version}
-                >
-                  <span className="ws-sr">Data version</span>
-                  {shortDataVersion(dataset.meta.data_version)}
-                </span>
-              </div>
-            ) : null}
-
-            <label className="relative inline-flex items-center">
-              <span className="ws-sr">Target</span>
-              <select
-                className="liquid-glass-btn appearance-none rounded-full text-xs pl-3 pr-7 h-8 max-w-[140px] sm:max-w-[165px] xl:max-w-[200px] truncate !text-white/90 focus:border-[rgb(240,255,60)]"
-                value={datasetState.slug ?? ''}
-                onChange={(event) => {
-                  chooseSlug(event.target.value)
-                }}
+        <Navbar
+          surface="workspace"
+          rightSlot={
+            <>
+              <span
+                className="text-xs font-medium text-white/85 truncate max-w-[140px] xl:max-w-[200px] min-w-0"
+                title={ready ? dataset.meta.title : headerTitle}
               >
-                <option value="" className="bg-[#0B0C10] text-white">
-                  Pick a target
-                </option>
-                {tier1.length > 0 ? (
-                  <optgroup label="Tier 1" className="bg-[#0B0C10] text-white">
-                    {tier1.map((entry) => (
-                      <option
-                        key={entry.slug}
-                        value={entry.slug}
-                        disabled={!entry.available}
-                        className={entry.available ? 'bg-[#0B0C10] text-white' : 'bg-[#0B0C10] text-white/35'}
-                      >
-                        {entry.title ?? entry.slug}
-                      </option>
-                    ))}
-                  </optgroup>
-                ) : null}
-                {tier15.length > 0 ? (
-                  <optgroup label="Tier 1.5" className="bg-[#0B0C10] text-white">
-                    {tier15.map((entry) => (
-                      <option
-                        key={entry.slug}
-                        value={entry.slug}
-                        disabled={!entry.available}
-                        className={entry.available ? 'bg-[#0B0C10] text-white' : 'bg-[#0B0C10] text-white/35'}
-                      >
-                        {entry.title ?? entry.slug}
-                      </option>
-                    ))}
-                  </optgroup>
-                ) : null}
-              </select>
-              <ChevronDownIcon className="pointer-events-none absolute right-2.5 w-3.5 h-3.5 text-white/60" />
-            </label>
-
-            <button
-              type="button"
-              className="liquid-glass-btn h-8 px-2.5 text-xs gap-1.5 !text-white/85"
-              aria-pressed={theme === 'dark'}
-              aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            >
-              {theme === 'dark' ? <SunIcon className="w-3.5 h-3.5" /> : <MoonIcon className="w-3.5 h-3.5" />}
-              <span className="hidden sm:inline">{theme === 'dark' ? 'Light' : 'Dark'}</span>
-            </button>
-          </div>
-        </header>
+                {headerTitle}
+              </span>
+              {ready ? (
+                <span className="hidden md:inline-flex items-center gap-1.5 rounded-full bg-white/[0.04] border border-white/[0.10] px-2.5 py-1 text-[11px] shrink-0">
+                  <span className="whitespace-nowrap text-white/80">{tierLabel(dataset.meta.tier)}</span>
+                  <span
+                    className={
+                      dataset.meta.status === 'partial'
+                        ? 'rounded-full border border-amber-400/40 bg-amber-500/15 px-1.5 py-0.5 text-amber-300 whitespace-nowrap'
+                        : 'rounded-full border border-emerald-400/25 bg-emerald-500/10 px-1.5 py-0.5 text-emerald-300 whitespace-nowrap'
+                    }
+                  >
+                    {dataset.meta.status}
+                  </span>
+                  <span className="font-mono tabular-nums text-white/60" title={dataset.meta.data_version}>
+                    <span className="ws-sr">Data version</span>
+                    {shortDataVersion(dataset.meta.data_version)}
+                  </span>
+                </span>
+              ) : null}
+              <label className="relative inline-flex items-center min-w-0 shrink">
+                <span className="ws-sr">Target</span>
+                <select
+                  className="rounded-full bg-white/[0.05] border border-white/[0.14] hover:border-[rgb(240,255,60)]/60 text-white/90 text-xs pl-3 pr-7 py-1.5 max-w-[165px] truncate appearance-none min-w-0"
+                  value={datasetState.slug ?? ''}
+                  onChange={(event) => {
+                    chooseSlug(event.target.value)
+                  }}
+                >
+                  <option value="" className="bg-[#0B0C10] text-white">
+                    Pick a target
+                  </option>
+                  {tier1.length > 0 ? (
+                    <optgroup label="Tier 1" className="bg-[#0B0C10] text-white">
+                      {tier1.map((entry) => (
+                        <option
+                          key={entry.slug}
+                          value={entry.slug}
+                          disabled={!entry.available}
+                          className={entry.available ? 'bg-[#0B0C10] text-white' : 'bg-[#0B0C10] text-white/35'}
+                        >
+                          {entry.title ?? entry.slug}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ) : null}
+                  {tier15.length > 0 ? (
+                    <optgroup label="Tier 1.5" className="bg-[#0B0C10] text-white">
+                      {tier15.map((entry) => (
+                        <option
+                          key={entry.slug}
+                          value={entry.slug}
+                          disabled={!entry.available}
+                          className={entry.available ? 'bg-[#0B0C10] text-white' : 'bg-[#0B0C10] text-white/35'}
+                        >
+                          {entry.title ?? entry.slug}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ) : null}
+                </select>
+                <ChevronDownIcon className="pointer-events-none absolute right-2.5 w-3.5 h-3.5 text-white/60" />
+              </label>
+              <button
+                type="button"
+                className="shrink-0 inline-flex items-center justify-center h-8 w-8 rounded-full bg-white/[0.05] border border-white/[0.14] text-white/80 hover:border-[rgb(240,255,60)]/60"
+                aria-pressed={theme === 'dark'}
+                aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              >
+                {theme === 'dark' ? <SunIcon className="w-3.5 h-3.5" /> : <MoonIcon className="w-3.5 h-3.5" />}
+              </button>
+            </>
+          }
+        />
       )}
       <div className="ws-body">
         <div ref={mapRef} className="ws-map bg-black">
@@ -567,7 +507,10 @@ export function WorkspacePage() {
           onKeyDown={onSeparatorKey}
           onPointerDown={onSeparatorDown}
         >
-          <span className="w-px h-8 bg-black/20 dark:bg-white/20 group-hover:bg-black/40 dark:group-hover:bg-white/40 transition-colors" aria-hidden="true" />
+          <span
+            className="w-px h-8 bg-black/20 dark:bg-white/20 group-hover:bg-black/40 dark:group-hover:bg-white/40 transition-colors"
+            aria-hidden="true"
+          />
         </div>
         {/* eslint-enable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex */}
         <aside

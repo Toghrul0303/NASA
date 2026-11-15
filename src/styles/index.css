@@ -479,9 +479,7 @@ html.light {
 }
 
 .hero-cta {
-  min-height: 52px;
-  padding: 0 25px;
-  font-size: 14px;
+  justify-content: center;
 }
 
 .scroll-cue {

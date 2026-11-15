@@ -1,8 +1,19 @@
-import { useEffect, useRef, useState } from 'react'
-import { PillButton } from './PillButton'
-import { AsteriskIcon, CloseIcon, HomeIcon, InfoIcon, MenuIcon, OrbitIcon, TelescopeIcon } from './icons'
+import { useEffect, useState, type MouseEvent, type ReactNode } from 'react'
+import { useWorkspaceStore } from '../state/store'
+import { AsteriskIcon, HomeIcon, InfoIcon, OrbitIcon } from './icons'
 
-type SectionId = 'home' | 'about' | 'workspace'
+type NavbarSurface = 'home' | 'workspace'
+
+type NavbarProps = {
+  surface?: NavbarSurface
+  rightSlot?: ReactNode
+}
+
+const ITEM_BASE =
+  'flex flex-col items-center justify-center gap-1 w-[78px] h-[48px] rounded-full text-[11px] font-medium leading-none transition-all'
+const ITEM_ACTIVE =
+  'bg-white/[0.13] border border-white/[0.24] text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22)]'
+const ITEM_IDLE = 'border border-transparent text-white/60 hover:text-white hover:bg-white/[0.06]'
 
 function currentPath(): string {
   const path = window.location.pathname
@@ -10,199 +21,95 @@ function currentPath(): string {
   return path
 }
 
-export function Navbar() {
+function workspaceHref(slug: string | null, onWorkspace: boolean, viewKey: string): string {
+  if (onWorkspace && (window.location.search.length > 1 || viewKey.length > 0)) {
+    const params = new URLSearchParams(window.location.search)
+    if (slug) params.set('slug', slug)
+    const query = params.toString()
+    return query.length > 0 ? `/workspace?${query}` : '/workspace'
+  }
+  if (slug) return `/workspace?slug=${encodeURIComponent(slug)}`
+  return '/workspace'
+}
+
+export function Navbar({ surface, rightSlot }: NavbarProps) {
   const [pathname, setPathname] = useState(currentPath)
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [activeSection, setActiveSection] = useState<SectionId>(pathname === '/workspace' ? 'workspace' : 'home')
-  const menuButtonRef = useRef<HTMLButtonElement>(null)
-  const mobileMenuRef = useRef<HTMLDivElement>(null)
-  const firstMobileLinkRef = useRef<HTMLAnchorElement>(null)
-  const isHome = pathname === '/'
-  const isWorkspace = pathname === '/workspace'
+  const slug = useWorkspaceStore((state) => state.dataset.slug)
+  const viewKey = useWorkspaceStore((state) => `${state.view.ra}|${state.view.dec}|${state.view.fov}|${state.tool.tool}`)
 
   useEffect(() => {
     function onPopState() {
-      const next = currentPath()
-      setPathname(next)
-      setActiveSection(next === '/workspace' ? 'workspace' : 'home')
+      setPathname(currentPath())
     }
-
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
   }, [])
 
-  useEffect(() => {
-    if (!isHome) {
-      setActiveSection(isWorkspace ? 'workspace' : 'home')
-      return
-    }
+  const resolved: NavbarSurface = surface ?? (pathname === '/workspace' ? 'workspace' : 'home')
+  const onWorkspace = resolved === 'workspace'
+  const homeActive = !onWorkspace && pathname !== '/workspace'
+  const aboutHref = pathname === '/' ? '#about' : '/#about'
 
+  function onAboutClick(event: MouseEvent<HTMLAnchorElement>) {
+    if (pathname !== '/') return
     const about = document.getElementById('about')
     if (!about) return
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0]
-        if (!entry) return
-        setActiveSection(entry.isIntersecting ? 'about' : 'home')
-      },
-      { rootMargin: '-45% 0px -45% 0px', threshold: 0 },
-    )
-
-    observer.observe(about)
-    return () => observer.disconnect()
-  }, [isHome, isWorkspace])
-
-  useEffect(() => {
-    if (!menuOpen) return
-
-    firstMobileLinkRef.current?.focus()
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setMenuOpen(false)
-        menuButtonRef.current?.focus()
-        return
-      }
-
-      if (event.key !== 'Tab') return
-
-      const focusable = Array.from(
-        mobileMenuRef.current?.querySelectorAll<HTMLElement>('a[href], button:not([disabled])') ?? [],
-      )
-      const firstElement = focusable[0]
-      const lastElement = focusable[focusable.length - 1]
-      if (!firstElement || !lastElement) return
-
-      if (event.shiftKey && document.activeElement === firstElement) {
-        event.preventDefault()
-        lastElement.focus()
-      } else if (!event.shiftKey && document.activeElement === lastElement) {
-        event.preventDefault()
-        firstElement.focus()
-      }
+    event.preventDefault()
+    about.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    if (window.location.hash !== '#about') {
+      window.history.pushState(null, '', '/#about')
     }
+  }
 
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [menuOpen])
-
-  const aboutHref = isHome ? '#about' : '/#about'
-  const homeActive = isHome && activeSection === 'home'
-  const aboutActive = isHome && activeSection === 'about'
+  const surfaceClass = onWorkspace
+    ? 'bg-[#05060A]/80 backdrop-blur-xl border-b border-white/[0.08]'
+    : 'bg-transparent fixed top-0 inset-x-0'
 
   return (
-    <>
-      <header className="site-header">
-        <div className="site-header__inner">
-          <a href="/" className="brand-mark" aria-label="ExoTrace home">
-            <AsteriskIcon />
-            <span className="brand-mark__word">ExoTrace</span>
+    <header
+      className={`w-full h-[76px] min-h-[76px] max-h-[76px] px-6 sm:px-8 grid grid-cols-[1fr_auto_1fr] items-center gap-3 z-30 shrink-0 select-none ${surfaceClass}`}
+    >
+      <div className="justify-self-start flex items-center gap-3 min-w-0">
+        <a href="/" className="inline-flex items-center gap-2 min-w-0" aria-label="ExoTrace home">
+          <AsteriskIcon className="w-4 h-4 text-white shrink-0" />
+          <span className="text-sm font-semibold tracking-tight text-white">ExoTrace</span>
+        </a>
+      </div>
+
+      <nav aria-label="Main navigation" className="justify-self-center">
+        <div className="rounded-full bg-[#12141A]/75 backdrop-blur-xl border border-white/[0.14] px-2.5 py-1.5 inline-flex items-center gap-1.5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.16),0_10px_30px_rgba(0,0,0,0.45)]">
+          <a
+            href="/"
+            aria-current={homeActive ? 'page' : undefined}
+            className={`${ITEM_BASE} ${homeActive ? ITEM_ACTIVE : ITEM_IDLE}`}
+          >
+            <HomeIcon className="w-4 h-4" />
+            <span>Home</span>
           </a>
-
-          <nav
-            className="nav-pill"
-            aria-label="Main navigation"
-            style={{ backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)' }}
+          <a href={aboutHref} className={`${ITEM_BASE} ${ITEM_IDLE}`} onClick={onAboutClick}>
+            <InfoIcon className="w-4 h-4" />
+            <span>About</span>
+          </a>
+          <a
+            href={workspaceHref(slug, onWorkspace, viewKey)}
+            aria-current={onWorkspace ? 'page' : undefined}
+            className={`${ITEM_BASE} ${onWorkspace ? ITEM_ACTIVE : ITEM_IDLE}`}
+            onMouseDown={(event) => {
+              if (!onWorkspace) return
+              event.currentTarget.setAttribute('href', workspaceHref(slug, true, viewKey))
+            }}
+            onFocus={(event) => {
+              if (!onWorkspace) return
+              event.currentTarget.setAttribute('href', workspaceHref(slug, true, viewKey))
+            }}
           >
-            <a href="/" aria-current={homeActive ? 'page' : undefined} className={homeActive ? 'is-active' : undefined}>
-              <HomeIcon />
-              <span>Home</span>
-            </a>
-            <a href="/workspace">
-              <TelescopeIcon />
-              <span>Targets</span>
-            </a>
-            <a
-              href={aboutHref}
-              aria-current={aboutActive ? 'location' : undefined}
-              className={aboutActive ? 'is-active' : undefined}
-            >
-              <InfoIcon />
-              <span>About</span>
-            </a>
-            <a
-              href="/workspace"
-              aria-current={isWorkspace ? 'page' : undefined}
-              className={isWorkspace ? 'is-active' : undefined}
-            >
-              <OrbitIcon />
-              <span>Workspace</span>
-            </a>
-          </nav>
-
-          <button
-            ref={menuButtonRef}
-            className="menu-toggle"
-            type="button"
-            aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
-            aria-expanded={menuOpen}
-            aria-controls="mobile-navigation"
-            onClick={() => setMenuOpen((open) => !open)}
-          >
-            {menuOpen ? <CloseIcon /> : <MenuIcon />}
-          </button>
+            <OrbitIcon className="w-4 h-4" />
+            <span>Workspace</span>
+          </a>
         </div>
-      </header>
+      </nav>
 
-      {menuOpen && (
-        <div
-          ref={mobileMenuRef}
-          className="mobile-menu"
-          id="mobile-navigation"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Navigation menu"
-        >
-          <div className="mobile-menu__top">
-            <a href="/" className="brand-mark" aria-label="ExoTrace home" onClick={() => setMenuOpen(false)}>
-              <AsteriskIcon />
-              <span className="brand-mark__word">ExoTrace</span>
-            </a>
-            <button
-              className="menu-toggle"
-              type="button"
-              aria-label="Close navigation menu"
-              onClick={() => {
-                setMenuOpen(false)
-                menuButtonRef.current?.focus()
-              }}
-            >
-              <CloseIcon />
-            </button>
-          </div>
-          <nav className="mobile-menu__links" aria-label="Mobile navigation">
-            <a
-              ref={firstMobileLinkRef}
-              href="/"
-              aria-current={homeActive ? 'page' : undefined}
-              className={homeActive ? 'is-active' : undefined}
-              onClick={() => setMenuOpen(false)}
-            >
-              Home
-            </a>
-            <a
-              href={aboutHref}
-              aria-current={aboutActive ? 'location' : undefined}
-              className={aboutActive ? 'is-active' : undefined}
-              onClick={() => setMenuOpen(false)}
-            >
-              About
-            </a>
-            <a
-              href="/workspace"
-              aria-current={isWorkspace ? 'page' : undefined}
-              className={isWorkspace ? 'is-active' : undefined}
-              onClick={() => setMenuOpen(false)}
-            >
-              Workspace
-            </a>
-          </nav>
-          <PillButton href="/workspace" variant="secondary" icon={<TelescopeIcon />} onClick={() => setMenuOpen(false)}>
-            Explore targets
-          </PillButton>
-        </div>
-      )}
-    </>
+      <div className="justify-self-end flex items-center gap-2 min-w-0 max-h-[48px]">{rightSlot ?? null}</div>
+    </header>
   )
 }

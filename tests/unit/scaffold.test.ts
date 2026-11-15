@@ -114,6 +114,8 @@ describe('env', () => {
       spherexCubeHipsUrl: undefined,
       irsaSpectrophotometryUrl: undefined,
       irsaMostUrl: undefined,
+      useMocks: false,
+      mockJobDelayMs: 800,
     })
   })
 

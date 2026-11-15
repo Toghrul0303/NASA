@@ -28,7 +28,7 @@ export function App() {
   return (
     <>
       <PageBackground />
-      <Navbar />
+      <Navbar surface="home" />
       <main>
         <HeroSection />
         <AboutSection />

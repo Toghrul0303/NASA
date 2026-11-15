@@ -33,6 +33,10 @@ export interface RawEnv {
   VITE_SPHEREX_CUBE_HIPS_URL?: string
   VITE_IRSA_SPECTROPHOTOMETRY_URL?: string
   VITE_IRSA_MOST_URL?: string
+  /** `1` or `true` serves Tier 2 jobs from the captured samples. Unset uses the API. */
+  VITE_USE_MOCKS?: string
+  /** Milliseconds between mock queued, running, and complete. */
+  VITE_MOCK_JOB_DELAY_MS?: string
 }
 
 export interface AppEnv {
@@ -43,6 +47,8 @@ export interface AppEnv {
   spherexCubeHipsUrl: string | undefined
   irsaSpectrophotometryUrl: string | undefined
   irsaMostUrl: string | undefined
+  useMocks: boolean
+  mockJobDelayMs: number
 }
 
 export function parseString(value: string | undefined, fallback: string): string {
@@ -53,6 +59,14 @@ export function parseString(value: string | undefined, fallback: string): string
 export function parseOptional(value: string | undefined): string | undefined {
   if (value === undefined || value.trim() === '') return undefined
   return value.trim()
+}
+
+/** Non-negative milliseconds. Blank or invalid text keeps the fallback. */
+export function parseDelayMs(value: string | undefined, fallback: number): number {
+  if (value === undefined || value.trim() === '') return fallback
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed < 0) return fallback
+  return parsed
 }
 
 /** Feature gates fail closed: only `true` and `1` enable them. */
@@ -72,6 +86,8 @@ export function readEnv(raw: RawEnv): AppEnv {
     spherexCubeHipsUrl: parseOptional(raw.VITE_SPHEREX_CUBE_HIPS_URL),
     irsaSpectrophotometryUrl: parseOptional(raw.VITE_IRSA_SPECTROPHOTOMETRY_URL),
     irsaMostUrl: parseOptional(raw.VITE_IRSA_MOST_URL),
+    useMocks: parseBool(raw.VITE_USE_MOCKS, false),
+    mockJobDelayMs: parseDelayMs(raw.VITE_MOCK_JOB_DELAY_MS, 800),
   }
 }
 

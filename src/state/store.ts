@@ -3,7 +3,15 @@
  * A dataset is replaced as a whole and is not mutated after `ready`.
  */
 import { create } from 'zustand'
+import {
+  createTier2Client,
+  type MockJobState,
+  type SubmitOptions,
+  type SubmitResult,
+  type Tier2Listener,
+} from '../api/tier2Client'
 import { ZOOM_MIN } from '../config/constants'
+import { env } from '../config/env'
 import type { ToolId } from '../config/tools'
 import type { Detector, Frame } from '../contract/types'
 import { ContractError, type ContractErrorCode } from '../contract/validate'
@@ -22,9 +30,18 @@ import {
   selectFrames,
   type BlinkMode,
 } from '../core/blink'
+import { defaultSpectralPair, defaultTemporalPair, type DiffMode, type DiffOperand } from '../core/difference'
 import { clampRgbGain, type RgbGains, type RgbMemberPreset } from '../core/rgb'
 import type { Dataset } from '../data/dataset'
 import { loadDataset as fetchDataset } from '../data/loader'
+import {
+  INVALID_SIZE_BODY,
+  isInvalidSizeBody,
+  type CompleteEvent,
+  type FailedEvent,
+  type JobObject,
+  type JobRequest,
+} from '../core/tier2'
 import { applyTheme, initialTheme, prefersReducedMotion, writeStoredTheme, type ThemeName } from '../ui/theme'
 
 export interface FrameViewport {
@@ -130,17 +147,61 @@ export type RgbPatch = {
   gains?: Partial<RgbGains>
 }
 
+/** Difference imaging operands. Reset when the dataset changes. §11. */
+export interface DiffState {
+  mode: DiffMode
+  a: DiffOperand | null
+  b: DiffOperand | null
+}
+
+export type DiffPatch = Partial<DiffState>
+
 export interface ToolState {
   tool: ToolId
   frame: FrameViewport
   blink: BlinkState
   sed: SedState
   rgb: RgbState
+  diff: DiffState
+}
+
+/** UI states for a Tier 2 run. `partial` is a flag, not a status. */
+export type JobUiStatus = 'idle' | 'submitting' | 'queued' | 'running' | 'complete' | 'failed'
+
+export interface JobFieldError {
+  field: string
+  issue: string
+}
+
+export interface JobFailureView {
+  code: string
+  message: string
+  retryable: boolean
+}
+
+export interface JobNavigation {
+  token: number
+  slug: string
 }
 
 export interface JobState {
-  status: 'idle'
+  status: JobUiStatus
+  partial: boolean
+  cached: boolean
+  joined: boolean
+  queuePosition: number | null
+  nFailedFetches: number
+  jobId: string | null
+  slug: string | null
+  request: JobRequest | null
+  failure: JobFailureView | null
+  fieldErrors: readonly JobFieldError[]
+  errorCode: string | null
+  errorMessage: string | null
+  navigation: JobNavigation | null
 }
+
+export type Tier2Body = JobRequest | typeof INVALID_SIZE_BODY
 
 export interface ToastMessage {
   id: number
@@ -172,6 +233,7 @@ interface WorkspaceStore {
   setBlink: (partial: BlinkPatch) => void
   setSed: (partial: SedPatch) => void
   setRgb: (partial: RgbPatch) => void
+  setDiff: (partial: DiffPatch) => void
   stepBlink: (delta: number) => void
   /** Point the frames blink at one `frames.json` row and open the Blink tool. */
   openFrameInBlink: (frameIndex: number) => void
@@ -184,6 +246,14 @@ interface WorkspaceStore {
    * URL boot passes false when `ra` and `dec` are already in the query.
    */
   loadDataset: (slug: string, options?: { recenter?: boolean }) => Promise<void>
+  /** POST one job. A cached complete loads the dataset without a queued or running state. */
+  submitTier2: (body: Tier2Body, mockState?: MockJobState) => Promise<void>
+  /** Re-POST the last request with `force_refresh: false`. */
+  retryTier2: () => Promise<void>
+  /** Drop an in-flight watch. The server job, if any, is left running. */
+  cancelTier2: () => void
+  /** Clear a failed or invalid notice so a new position starts clean. */
+  resetTier2Notice: () => void
 }
 
 const DEFAULT_FOV_DEG = 0.5
@@ -255,6 +325,20 @@ export function rgbStateFor(dataset: Dataset | null): RgbState {
   }
 }
 
+/** Temporal defaults from the Blink window; an empty dataset leaves both operands unset. */
+export function diffStateFor(dataset: Dataset | null, blink: BlinkState): DiffState {
+  if (!dataset) return { mode: 'temporal', a: null, b: null }
+  return { mode: 'temporal', ...diffPairForMode(dataset, 'temporal', blink) }
+}
+
+/** Default pair for a mode, used when the mode changes. */
+export function diffPairForMode(dataset: Dataset, mode: DiffMode, blink: BlinkState): Pick<DiffState, 'a' | 'b'> {
+  const ctx = { frames: dataset.frames.frames, coadds: dataset.coadds.coadds }
+  const pair =
+    mode === 'temporal' ? defaultTemporalPair(ctx, blink.detector, blink.lambda0, blink.k) : defaultSpectralPair(ctx)
+  return { a: pair?.a ?? null, b: pair?.b ?? null }
+}
+
 function applyRgb(current: RgbState, partial: RgbPatch): RgbState {
   const gains = { ...current.gains, ...partial.gains }
   return {
@@ -316,6 +400,177 @@ function watchReducedMotion(set: (partial: (state: WorkspaceStore) => Partial<Wo
   if (typeof query.addEventListener === 'function') query.addEventListener('change', apply)
 }
 
+function idleJob(navigation: JobNavigation | null): JobState {
+  return {
+    status: 'idle',
+    partial: false,
+    cached: false,
+    joined: false,
+    queuePosition: null,
+    nFailedFetches: 0,
+    jobId: null,
+    slug: null,
+    request: null,
+    failure: null,
+    fieldErrors: [],
+    errorCode: null,
+    errorMessage: null,
+    navigation,
+  }
+}
+
+function failureFromEvent(event: FailedEvent): JobFailureView {
+  return { code: event.code, message: event.message, retryable: event.retryable }
+}
+
+const tier2Client = createTier2Client({
+  useMocks: env.useMocks,
+  apiBase: env.apiBase,
+  mockDelayMs: env.mockJobDelayMs,
+})
+
+let jobAbort: AbortController | null = null
+let jobToken = 0
+let navToken = 0
+
+function runningJob(current: JobState, job: JobObject): JobState {
+  return {
+    ...current,
+    status: 'running',
+    joined: job.joined,
+    queuePosition: null,
+    jobId: job.job_id,
+    slug: job.slug,
+    cached: false,
+    partial: false,
+    failure: null,
+    fieldErrors: [],
+    errorCode: null,
+    errorMessage: null,
+  }
+}
+
+function openFinishedSlug(slug: string): void {
+  void useWorkspaceStore.getState().loadDataset(slug)
+}
+
+function finishComplete(event: CompleteEvent): void {
+  const token = ++navToken
+  useWorkspaceStore.setState((state) => ({
+    job: {
+      ...state.job,
+      status: 'complete',
+      partial: event.result_status === 'partial',
+      cached: false,
+      joined: state.job.joined,
+      nFailedFetches: event.n_failed_fetches,
+      jobId: event.job_id,
+      slug: event.slug,
+      failure: null,
+      fieldErrors: [],
+      errorCode: null,
+      errorMessage: null,
+      queuePosition: null,
+      navigation: { token, slug: event.slug },
+    },
+  }))
+  openFinishedSlug(event.slug)
+}
+
+function applyTier2Result(result: SubmitResult): void {
+  if (result.kind === 'invalid') {
+    useWorkspaceStore.setState((state) => ({
+      job: {
+        ...state.job,
+        status: 'idle',
+        failure: null,
+        fieldErrors: result.error.error.details,
+        errorCode: result.error.error.code,
+        errorMessage: result.error.error.message,
+      },
+    }))
+    return
+  }
+  if (result.kind === 'error') {
+    useWorkspaceStore.setState((state) => ({
+      job: {
+        ...state.job,
+        status: 'failed',
+        failure: {
+          code: result.error.error.code,
+          message: result.error.error.message,
+          retryable: false,
+        },
+        errorCode: result.error.error.code,
+        errorMessage: result.error.error.message,
+        fieldErrors: result.error.error.details,
+      },
+    }))
+    return
+  }
+  const job = result.job
+  if (job.status === 'failed') {
+    const failure = result.failure
+      ? failureFromEvent(result.failure)
+      : { code: 'failed', message: '', retryable: false }
+    useWorkspaceStore.setState((state) => ({
+      job: {
+        ...state.job,
+        status: 'failed',
+        cached: false,
+        joined: job.joined,
+        jobId: job.job_id,
+        slug: null,
+        partial: false,
+        failure,
+        errorCode: failure.code,
+        errorMessage: failure.message,
+        fieldErrors: [],
+      },
+    }))
+    return
+  }
+  if (job.status === 'complete') {
+    const token = ++navToken
+    useWorkspaceStore.setState((state) => ({
+      job: {
+        ...state.job,
+        status: 'complete',
+        cached: job.cached,
+        joined: job.joined,
+        partial: false,
+        nFailedFetches: 0,
+        queuePosition: null,
+        jobId: job.job_id,
+        slug: job.slug,
+        failure: null,
+        fieldErrors: [],
+        errorCode: null,
+        errorMessage: null,
+        navigation: { token, slug: job.slug },
+      },
+    }))
+    openFinishedSlug(job.slug)
+    return
+  }
+  useWorkspaceStore.setState((state) => ({
+    job: {
+      ...state.job,
+      status: job.status,
+      cached: false,
+      joined: job.joined,
+      queuePosition: job.status === 'queued' ? result.queuePosition : null,
+      jobId: job.job_id,
+      slug: job.slug,
+      partial: false,
+      failure: null,
+      fieldErrors: [],
+      errorCode: null,
+      errorMessage: null,
+    },
+  }))
+}
+
 const bootTheme = initialTheme()
 applyTheme(bootTheme)
 const bootReducedMotion = prefersReducedMotion()
@@ -326,9 +581,16 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set) => ({
   view: { ra: 0, dec: 0, fov: DEFAULT_FOV_DEG },
   frameFocus: null,
   gaiaLayer: false,
-  tool: { tool: 'map', frame: initialFrame(), blink: bootBlink, sed: initialSedState(bootBlink), rgb: bootRgb },
+  tool: {
+    tool: 'map',
+    frame: initialFrame(),
+    blink: bootBlink,
+    sed: initialSedState(bootBlink),
+    rgb: bootRgb,
+    diff: diffStateFor(null, bootBlink),
+  },
   dataset: { slug: null, status: 'idle', dataset: null, errorCode: null },
-  job: { status: 'idle' },
+  job: idleJob(null),
   ui: {
     embed: false,
     reducedMotion: bootReducedMotion,
@@ -354,6 +616,10 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set) => ({
   setRgb: (partial) =>
     set((state) => ({
       tool: { ...state.tool, rgb: applyRgb(state.tool.rgb, partial) },
+    })),
+  setDiff: (partial) =>
+    set((state) => ({
+      tool: { ...state.tool, diff: { ...state.tool.diff, ...partial } },
     })),
   stepBlink: (delta) =>
     set((state) => {
@@ -421,6 +687,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set) => ({
           blink,
           sed: initialSedState(blink),
           rgb: rgbStateFor(null),
+          diff: diffStateFor(null, blink),
         },
       }
     })
@@ -447,6 +714,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set) => ({
             blink,
             sed: sedStateFor(dataset, blink),
             rgb: rgbStateFor(dataset),
+            diff: diffStateFor(dataset, blink),
           },
         }
       })
@@ -455,6 +723,104 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set) => ({
       const errorCode = error instanceof ContractError ? error.code : 'invalid'
       set({ dataset: { slug, status: 'error', dataset: null, errorCode } })
     }
+  },
+  submitTier2: async (body, mockState) => {
+    jobAbort?.abort()
+    const controller = new AbortController()
+    jobAbort = controller
+    const token = ++jobToken
+    const request = isInvalidSizeBody(body) ? null : body
+    set((state) => ({
+      job: {
+        ...idleJob(state.job.navigation),
+        status: 'submitting',
+        request,
+      },
+    }))
+    let advanced = false
+    const listener: Tier2Listener = {
+      onRunning: (job) => {
+        if (token !== jobToken || controller.signal.aborted) return
+        advanced = true
+        set((state) => ({ job: runningJob(state.job, job) }))
+      },
+      onComplete: (event) => {
+        if (token !== jobToken || controller.signal.aborted) return
+        advanced = true
+        finishComplete(event)
+      },
+      onFailed: (event) => {
+        if (token !== jobToken || controller.signal.aborted) return
+        advanced = true
+        set((state) => ({
+          job: {
+            ...state.job,
+            status: 'failed',
+            partial: false,
+            failure: failureFromEvent(event),
+            fieldErrors: [],
+            errorCode: event.code,
+            errorMessage: event.message,
+          },
+        }))
+      },
+    }
+    const options: SubmitOptions = { signal: controller.signal, listener }
+    if (mockState) options.mockState = mockState
+    let result
+    try {
+      result = await tier2Client.submit(body, options)
+    } catch {
+      if (token !== jobToken || controller.signal.aborted) return
+      set((state) => ({
+        job: {
+          ...state.job,
+          status: 'failed',
+          failure: { code: 'internal_error', message: '', retryable: false },
+          errorCode: 'internal_error',
+          errorMessage: '',
+        },
+      }))
+      return
+    }
+    if (token !== jobToken || controller.signal.aborted) return
+    if (result.kind === 'job' && advanced && (result.job.status === 'queued' || result.job.status === 'running')) return
+    applyTier2Result(result)
+  },
+  retryTier2: async () => {
+    const request = useWorkspaceStore.getState().job.request
+    if (!request) return
+    await useWorkspaceStore.getState().submitTier2({ ...request, force_refresh: false })
+  },
+  cancelTier2: () => {
+    const status = useWorkspaceStore.getState().job.status
+    if (status !== 'submitting' && status !== 'queued' && status !== 'running') return
+    jobAbort?.abort()
+    jobToken += 1
+    set((state) => ({
+      job: {
+        ...idleJob(state.job.navigation),
+        partial: state.job.partial,
+        nFailedFetches: state.job.nFailedFetches,
+      },
+    }))
+  },
+  resetTier2Notice: () => {
+    const status = useWorkspaceStore.getState().job.status
+    if (status === 'submitting' || status === 'queued' || status === 'running') {
+      useWorkspaceStore.getState().cancelTier2()
+    }
+    set((state) => ({
+      job: {
+        ...state.job,
+        status: state.job.status === 'failed' || state.job.status === 'complete' ? 'idle' : state.job.status,
+        failure: null,
+        fieldErrors: [],
+        errorCode: null,
+        errorMessage: null,
+        queuePosition: null,
+      },
+    }))
   },
 }))
 

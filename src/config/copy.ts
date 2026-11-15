@@ -4,9 +4,6 @@
  */
 import type { ContractErrorCode } from '../contract/validate'
 
-/** TEMP until F15 replaces the coordinate boot path with a real job. */
-export const liveAnalysisUnavailable = 'Live analysis is not available yet'
-
 /** Gaia verdict headlines. §14.1. The client never recomputes the verdict. */
 export const verdictHeadlines = {
   match_consistent: 'Gaia match, motion consistent',
@@ -242,6 +239,45 @@ export const jobStatus = {
   resume: 'Resume',
 } as const
 
+/** Analyze-position panel. Preset warning text matches TIER2_PRESETS.md. */
+export const tier2Copy = {
+  title: 'Analyze this position',
+  ra: 'Right ascension',
+  dec: 'Declination',
+  size: 'Size',
+  run: 'Run',
+  retry: 'Retry',
+  close: 'Close',
+  presets: 'Presets',
+  defaultPreset: 'Default',
+  mayFail: 'may fail while IRSA is unstable',
+  submitting: 'Submitting',
+  queued: 'Queued',
+  running: 'Running',
+  complete: 'Complete',
+  failedPlain: 'This analysis failed.',
+  code: 'Code',
+  message: 'Message',
+  partialDetail: 'Some frames were dropped. The result is marked partial.',
+  invalidSize: 'Submit size 0.3',
+  mockOutcome: 'Mock outcome',
+  mockAutomatic: 'Automatic',
+  mockCached: 'Cached hit',
+  mockProgress: 'New job',
+  mockPartial: 'Partial result',
+  mockFailed: 'Failed job',
+  mockInvalid: 'Invalid body',
+  datasetSlug: 'Dataset',
+} as const
+
+export function tier2SizeLabel(sizeDeg: number): string {
+  return `${sizeDeg} deg`
+}
+
+export function tier2FieldIssue(field: string, issue: string): string {
+  return `${field}: ${issue}`
+}
+
 export function queuePosition(position: number): string {
   return `Position ${position}`
 }
@@ -474,4 +510,65 @@ export function rgbGroupLine(blue: readonly number[], green: readonly number[], 
 /** Per-group SNR and the minimum that selected the partition. */
 export function rgbGroupSnr(blue: string, green: string, red: string, min: string): string {
   return `Group SNR B ${blue}, G ${green}, R ${red}; min ${min}`
+}
+
+/** Difference imaging. FRONTEND_SPEC �11. A difference map is never described as a detection. */
+export const diffCopy = {
+  loading: 'Loading difference imaging',
+  modeLabel: 'Difference mode',
+  layerLabel: 'Difference layer',
+  layerS: 'Significance S',
+  layerD: 'Difference D',
+  operandA: 'Operand A',
+  operandB: 'Operand B',
+  framesGroup: 'Frames',
+  coaddsGroup: 'Coadds',
+  contours: 'Contours at �3',
+  noOperand: 'Choose an operand',
+  needsTwoFrames: 'Needs two frames',
+  identical: 'A and B are the same image, so the difference is empty',
+  noPair: 'No valid pair for this mode. Pick A and B by hand.',
+  spectralNote: 'Different wavelengths: stars differ in brightness, not only position.',
+  staticSkyNote: 'static-sky only, motion smears',
+  legendDipole: 'A mover appears as a positive/negative pair',
+  caveat:
+    'This map shows where two images differ. It does not show by itself that a source is real or that anything moved.',
+  contourKey: 'Solid: S = +3. Dashed: S = -3.',
+  alignmentLabel: 'Alignment',
+  alignmentUnknown: 'Alignment unknown',
+  alignmentWarning: 'Misalignment can create false dipoles',
+  alignmentArtefact: 'Dipoles near bright stars may be alignment artefacts.',
+  rowD: 'D',
+  rowSigmaD: 'sD',
+  rowS: 'S',
+  rowDUnit: 'MJy/sr',
+  masked: 'masked',
+  pixelsAtLeast3: 'Pixels with |S| = 3',
+  maxNearA: 'Max |S| within 3 px of A',
+  ariaLabel: 'Difference image, north up, east left. Blue is negative and orange is positive.',
+  minus: 'minus',
+  allEpochs: 'all epochs',
+  allDetectors: 'all detectors',
+  markerA: 'A',
+  markerB: 'B',
+} as const
+
+export const diffIssues = {
+  mixed_kinds: 'A and B must both be frames or both be coadds',
+  detector: 'A and B must use the same detector',
+  epoch: 'A and B must come from different epochs',
+  wavelength_match: 'Temporal frames need matched wavelengths (within one bandwidth)',
+  wavelength_differ:
+    'Spectral operands need clearly different wavelengths (more than one bandwidth apart, or coadd ranges that barely overlap)',
+  scope: 'Coadd operands have the wrong scope for this mode',
+  same_epoch: 'Spectral operands must share an epoch',
+} as const
+
+export function diffAlignmentBadge(state: 'good' | 'caution' | 'poor', px: string, arcsec: string): string {
+  const word = state === 'good' ? 'good' : state === 'caution' ? 'caution' : 'poor'
+  return `Alignment ${word}: ${px} px (${arcsec} arcsec)`
+}
+
+export function diffPeakSummary(count: number, maxNearA: string): string {
+  return `${diffCopy.pixelsAtLeast3}: ${count}. ${diffCopy.maxNearA}: ${maxNearA}`
 }

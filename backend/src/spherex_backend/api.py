@@ -7,8 +7,9 @@ import gzip
 import hashlib
 import json
 import logging
+import os
 import re
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Mapping
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -21,8 +22,15 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_valida
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from spherex_backend import __version__
-from spherex_backend.config import LoadedSettings
-from spherex_backend.jobs import Job, JobManager, NormalizedRequest, QueueFull, SubmitResult
+from spherex_backend.config import LoadedSettings, ServerConfig
+from spherex_backend.jobs import (
+    Job,
+    JobManager,
+    LiveJobsDisabled,
+    NormalizedRequest,
+    QueueFull,
+    SubmitResult,
+)
 
 log = logging.getLogger("spherex_backend.api")
 
@@ -74,6 +82,47 @@ def error_response(exc: ApiError) -> JSONResponse:
 
 def not_found(message: str = "Not found.") -> ApiError:
     return ApiError(404, "not_found", message)
+
+
+_TRUE = {"1", "true", "yes"}
+_FALSE = {"0", "false", "no"}
+
+
+def live_jobs_enabled(environ: Mapping[str, str] | None = None) -> bool:
+    """``ENABLE_LIVE_JOBS`` (default true). Unset or blank stays on.
+
+    Only ``0``, ``false``, and ``no`` turn live IRSA jobs off. Any other text
+    is refused so a typo cannot leave the public server calling IRSA.
+    """
+    env = os.environ if environ is None else environ
+    raw = env.get("ENABLE_LIVE_JOBS")
+    if raw is None or raw.strip() == "":
+        return True
+    value = raw.strip().lower()
+    if value in _TRUE:
+        return True
+    if value in _FALSE:
+        return False
+    raise RuntimeError(f"ENABLE_LIVE_JOBS must be true or false, got {raw!r}")
+
+
+def cors_policy(
+    server: ServerConfig, environ: Mapping[str, str] | None = None
+) -> tuple[list[str], str | None]:
+    """Exact origins from ``CORS_ORIGINS``, else ``server.cors_allow_origins``.
+
+    The fallback is the deep-merged config, so ``config.local.yaml`` wins over
+    ``config.yaml`` when the env var is unset. ``CORS_ORIGIN_REGEX`` is optional
+    and is matched against the whole Origin header (Vercel preview URLs).
+    """
+    env = os.environ if environ is None else environ
+    raw = env.get("CORS_ORIGINS")
+    if raw is None:
+        origins = list(server.cors_allow_origins)
+    else:
+        origins = [part.strip() for part in raw.split(",") if part.strip()]
+    regex = env.get("CORS_ORIGIN_REGEX", "").strip() or None
+    return origins, regex
 
 
 # ---------------------------------------------------------------------------------------------
@@ -331,7 +380,7 @@ async def event_stream(
 
 def create_app(loaded: LoadedSettings, manager: JobManager | None = None) -> FastAPI:
     settings, paths = loaded.settings, loaded.paths
-    jobs = manager or JobManager(loaded)
+    jobs = manager or JobManager(loaded, live_jobs=live_jobs_enabled())
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -349,12 +398,18 @@ def create_app(loaded: LoadedSettings, manager: JobManager | None = None) -> Fas
             await asyncio.gather(scheduler, return_exceptions=True)
 
     app = FastAPI(title="SPHEREx Sky Explorer", version=__version__, lifespan=lifespan)
+    origins, origin_regex = cors_policy(settings.server)
+    # HEAD stays: /data serves it (BACKEND_SPEC §8.4). SSE is fetch(), so the
+    # browser must be allowed to send Last-Event-ID. ETag is what /data clients
+    # read; the event stream itself is the body, which CORS already exposes
+    # once the origin is allowed. Retry-After is the 429 header the client reads.
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.server.cors_allow_origins,
+        allow_origins=origins,
+        allow_origin_regex=origin_regex,
         allow_methods=["GET", "HEAD", "POST", "OPTIONS"],
         allow_headers=["Last-Event-ID", "Content-Type", "If-None-Match", "Accept"],
-        expose_headers=["ETag"],
+        expose_headers=["ETag", "Retry-After"],
     )
     service = DataService(paths.data_dir)
 
@@ -385,6 +440,12 @@ def create_app(loaded: LoadedSettings, manager: JobManager | None = None) -> Fas
         normalized = validate_request(await request.body())
         try:
             result: SubmitResult = jobs.submit(normalized)
+        except LiveJobsDisabled:
+            raise ApiError(
+                503,
+                "live_jobs_disabled",
+                "Live IRSA jobs are disabled on this server.",
+            ) from None
         except QueueFull as exc:
             raise ApiError(
                 429, "queue_full", "The job queue is full; retry later.",

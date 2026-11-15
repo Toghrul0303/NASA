@@ -1,0 +1,30 @@
+# Keep the build context to the API and the six shipped slug directories.
+.git
+.venv
+**/__pycache__
+**/*.py[cod]
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/.env
+**/.env.*
+node_modules
+dist
+cache
+coverage
+
+# Never ship the backup tree, the frontend copy of the cutouts, or tests.
+data_backup
+public
+backend/tests
+tests
+backend/config.local.yaml
+
+# Everything under data/ except the five Tier 1 slugs and the one Tier 2 preset.
+data/*
+!data/barnards-star
+!data/wise-0855
+!data/eps-indi-b
+!data/rw-aur
+!data/r-dra
+!data/c-a55d19970b4b8fd7

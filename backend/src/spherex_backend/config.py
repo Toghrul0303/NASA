@@ -723,7 +723,16 @@ def load_settings(
     local_path = path.with_name("config.local.yaml")
     if local_path.is_file():
         data = _deep_merge(data, _load_yaml(local_path))
-    data = _apply_env(data, os.environ if environ is None else environ)
+    env = os.environ if environ is None else environ
+    data = _apply_env(data, env)
+    # Railway/deploy override. Absolute paths stay absolute; relative ones resolve
+    # against the config file, same as paths.data_dir in the yaml.
+    data_dir = env.get("DATA_DIR")
+    if data_dir is not None and data_dir.strip():
+        paths = data.get("paths")
+        if not isinstance(paths, dict):
+            raise ConfigError("paths must be a mapping")
+        paths["data_dir"] = data_dir.strip()
     try:
         settings = Settings.model_validate(data)
     except ValidationError as exc:

@@ -37,6 +37,14 @@ class QueueFull(Exception):
         self.retry_after_s = retry_after_s
 
 
+class LiveJobsDisabled(Exception):
+    """Uncached work refused because ``ENABLE_LIVE_JOBS`` is false.
+
+    Raised before a job is queued, so the scheduler never starts a pipeline and
+    IRSA is not contacted.
+    """
+
+
 @dataclass(frozen=True)
 class NormalizedRequest:
     """DATA_CONTRACT section 11.2 normalized request."""
@@ -123,8 +131,9 @@ class JobSink:
 
 
 class JobManager:
-    def __init__(self, loaded: LoadedSettings) -> None:
+    def __init__(self, loaded: LoadedSettings, *, live_jobs: bool = True) -> None:
         self._loaded = loaded
+        self._live_jobs = live_jobs
         self._jobs_dir = loaded.paths.cache_dir / "jobs"
         self._by_slug_dir = self._jobs_dir / "by_slug"
         self._data_dir = loaded.paths.data_dir
@@ -416,6 +425,8 @@ class JobManager:
                     live = self._active.get(slug)
                 if live is None:
                     return SubmitResult(self._cached_job(request, slug, meta), True, False, "complete")
+        if not self._live_jobs:
+            raise LiveJobsDisabled()
         with self._lock:
             live = self._active.get(slug)
             if live is not None:

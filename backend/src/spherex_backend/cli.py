@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import sys
 from dataclasses import replace
 from datetime import UTC, datetime
@@ -157,10 +158,24 @@ def serve(
 
     loaded = _settings(ctx)
     server = loaded.settings.server
+    # CLI flags win, then PORT/HOST (Railway sets PORT), then config.yaml.
+    # workers stays 1: job state and the fetch semaphore are in-process.
+    bind_host = host or os.environ.get("HOST") or server.host
+    if port is None:
+        env_port = os.environ.get("PORT")
+        if env_port:
+            try:
+                bind_port = int(env_port)
+            except ValueError:
+                _fail(2, f"PORT must be an integer, got {env_port!r}")
+        else:
+            bind_port = server.port
+    else:
+        bind_port = port
     uvicorn.run(
         create_app(loaded),
-        host=host or server.host,
-        port=port or server.port,
+        host=bind_host,
+        port=bind_port,
         workers=1,
         log_config=None,  # keep the JSON-lines logging configured by the CLI
         log_level=server.log_level.lower(),

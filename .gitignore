@@ -13,6 +13,9 @@ __pycache__/
 /data/
 /cache/
 
+# Local copy of cutouts. Not versioned and not part of the deploy image.
+/data_backup/
+
 # Frontend
 node_modules
 dist

@@ -248,8 +248,8 @@ export const CACHED_WISE_JOB: JobObject = {
 /**
  * Queued, running, and partial samples were never captured from the real server.
  * The queued object is the DATA_CONTRACT §11.4 example. Running is that example
- * with `status` set to `running`. Partial is the §12.3 `complete` example with
- * `result_status` `partial` and `n_failed_fetches` 1.
+ * with `status` set to `running`. The terminal `complete` events below do not
+ * use that example's slug, because `c-8e21b4d0a97c3f56` is not served.
  */
 export const SPEC_QUEUED_JOB: JobObject = {
   job_id: 'j_3f9a1c07b2d4e581',
@@ -278,11 +278,31 @@ export const SPEC_RUNNING_JOB: JobObject = {
   status: 'running',
 }
 
+/**
+ * Slugs a mock job may open. `c-8e21b4d0a97c3f56` is only the §11.4 example
+ * and is not a directory under `/data`.
+ * Cached hit and New job open the safe WISE directory.
+ * Partial opens `fixture-barnard`: it is served from `public/data`, and no
+ * dataset in `public/data` or `data/` has `meta.status` `partial`
+ * (`barnards-star` and `fixture-barnard` are both `complete`).
+ */
+export const KNOWN_DATASET_SLUGS = ['c-a55d19970b4b8fd7', 'fixture-barnard'] as const
+
+export type KnownDatasetSlug = (typeof KNOWN_DATASET_SLUGS)[number]
+
+export const WISE_DATASET_SLUG: KnownDatasetSlug = 'c-a55d19970b4b8fd7'
+
+export const PARTIAL_DATASET_SLUG: KnownDatasetSlug = 'fixture-barnard'
+
+export function isKnownDatasetSlug(slug: string): slug is KnownDatasetSlug {
+  return (KNOWN_DATASET_SLUGS as readonly string[]).includes(slug)
+}
+
 export const SPEC_COMPLETE_EVENT: CompleteEvent = {
   job_id: 'j_3f9a1c07b2d4e581',
-  slug: 'c-8e21b4d0a97c3f56',
+  slug: WISE_DATASET_SLUG,
   result_status: 'complete',
-  data_base_url: '/data/c-8e21b4d0a97c3f56/',
+  data_base_url: `/data/${WISE_DATASET_SLUG}/`,
   data_version: 'sha256:00000000000000000000000000000000000000000000000000000000000000aa',
   n_frames: 413,
   n_epochs: 7,
@@ -296,9 +316,14 @@ export const SPEC_COMPLETE_EVENT: CompleteEvent = {
   elapsed_s: 96.3,
 }
 
-/** Not captured. Built from the §12.3 complete example; see the comment above SPEC_QUEUED_JOB. */
+/**
+ * Not captured. Same shape as the §12.3 complete example, with `result_status`
+ * `partial`. The slug is `fixture-barnard` so the lab opens a served dataset.
+ */
 export const SPEC_PARTIAL_EVENT: CompleteEvent = {
   ...SPEC_COMPLETE_EVENT,
+  slug: PARTIAL_DATASET_SLUG,
+  data_base_url: `/data/${PARTIAL_DATASET_SLUG}/`,
   result_status: 'partial',
   n_failed_fetches: 1,
 }

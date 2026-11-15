@@ -3,6 +3,8 @@ import { createTier2Client, resolveMockState, type MockJobState } from '../../sr
 import {
   CACHED_WISE_JOB,
   FAILED_FIXTURE_EVENT,
+  KNOWN_DATASET_SLUGS,
+  isKnownDatasetSlug,
   FAILED_FIXTURE_JOB,
   INVALID_SIZE_BODY,
   INVALID_SIZE_ERROR,
@@ -250,6 +252,41 @@ describe('mock tier2 client', () => {
     expect(result.failure?.code).toBe('upstream_unavailable')
     expect(result.failure?.message).toBe('Fixture: IRSA was not called.')
     expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
+  it('opens only known dataset slugs when a mock job completes', async () => {
+    const { client, clock } = mockClient()
+    const slugs: string[] = []
+
+    const cached = await client.submit(PRESET_WISE_0855)
+    if (cached.kind === 'job') slugs.push(cached.job.slug)
+
+    const progressDone: CompleteEvent[] = []
+    await client.submit(PRESET_PROXIMA, {
+      mockState: 'progress',
+      listener: { onComplete: (event) => progressDone.push(event) },
+    })
+    clock.next()
+    clock.next()
+    const progressSlug = progressDone[0]?.slug
+    if (progressSlug) slugs.push(progressSlug)
+
+    const partialDone: CompleteEvent[] = []
+    await client.submit(PRESET_EPSILON, {
+      mockState: 'partial',
+      listener: { onComplete: (event) => partialDone.push(event) },
+    })
+    clock.next()
+    clock.next()
+    const partialSlug = partialDone[0]?.slug
+    if (partialSlug) slugs.push(partialSlug)
+
+    expect(slugs).toEqual(['c-a55d19970b4b8fd7', 'c-a55d19970b4b8fd7', 'fixture-barnard'])
+    for (const slug of slugs) {
+      expect(KNOWN_DATASET_SLUGS).toContain(slug)
+      expect(isKnownDatasetSlug(slug)).toBe(true)
+      expect(slug).not.toBe('c-8e21b4d0a97c3f56')
+    }
   })
 
   it('returns the captured 422 envelope for an invalid size', async () => {

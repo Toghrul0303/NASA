@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { datasetErrorMessage, framesNotFetched, gaiaCopy, rgbCopy, sedCopy } from '../config/copy'
+import { datasetErrorMessage, diffCopy, framesNotFetched, gaiaCopy, rgbCopy, sedCopy } from '../config/copy'
 import { isToolId, TOOLS, toolById } from '../config/tools'
 import type { Dataset } from '../data/dataset'
 import { useWorkspaceStore } from '../state/store'
@@ -8,6 +8,7 @@ import { Skeleton } from '../ui/Skeleton'
 import { Tabs } from '../ui/Tabs'
 
 const BlinkTool = lazy(() => import('./tools/BlinkTool').then((mod) => ({ default: mod.BlinkTool })))
+const DiffTool = lazy(() => import('./tools/DiffTool').then((mod) => ({ default: mod.DiffTool })))
 const GaiaPanel = lazy(() => import('./tools/GaiaPanel').then((mod) => ({ default: mod.GaiaPanel })))
 const RgbTool = lazy(() => import('./tools/RgbTool').then((mod) => ({ default: mod.RgbTool })))
 const SedTool = lazy(() => import('./tools/SedTool').then((mod) => ({ default: mod.SedTool })))
@@ -109,6 +110,23 @@ function DatasetState({ onRetry }: { onRetry: () => void }) {
         }
       >
         <BlinkTool />
+      </Suspense>
+    )
+  }
+
+  if (tool === 'diff') {
+    return (
+      <Suspense
+        fallback={
+          <div
+            className="rounded-2xl bg-white dark:bg-[#0A0B10]/85 backdrop-blur-md border border-black/15 dark:border-white/12 p-4 text-sm text-zinc-600 dark:text-[#A1A1AA]"
+            role="status"
+          >
+            {diffCopy.loading}
+          </div>
+        }
+      >
+        <DiffTool />
       </Suspense>
     )
   }

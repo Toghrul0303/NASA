@@ -475,3 +475,62 @@ export function rgbGroupLine(blue: readonly number[], green: readonly number[], 
 export function rgbGroupSnr(blue: string, green: string, red: string, min: string): string {
   return `Group SNR B ${blue}, G ${green}, R ${red}; min ${min}`
 }
+
+/** Difference imaging. FRONTEND_SPEC �11. A difference map is never described as a detection. */
+export const diffCopy = {
+  loading: 'Loading difference imaging',
+  modeLabel: 'Difference mode',
+  layerLabel: 'Difference layer',
+  layerS: 'Significance S',
+  layerD: 'Difference D',
+  operandA: 'Operand A',
+  operandB: 'Operand B',
+  framesGroup: 'Frames',
+  coaddsGroup: 'Coadds',
+  contours: 'Contours at �3',
+  noOperand: 'Choose an operand',
+  needsTwoFrames: 'Needs two frames',
+  identical: 'A and B are the same image, so the difference is empty',
+  noPair: 'No valid pair for this mode. Pick A and B by hand.',
+  spectralNote: 'Different wavelengths: stars differ in brightness, not only position.',
+  staticSkyNote: 'static-sky only, motion smears',
+  legendDipole: 'A mover appears as a positive/negative pair',
+  caveat: 'This map shows where two images differ. It does not show by itself that a source is real or that anything moved.',
+  contourKey: 'Solid: S = +3. Dashed: S = -3.',
+  alignmentLabel: 'Alignment',
+  alignmentUnknown: 'Alignment unknown',
+  alignmentWarning: 'Misalignment can create false dipoles',
+  alignmentArtefact: 'Dipoles near bright stars may be alignment artefacts.',
+  rowD: 'D',
+  rowSigmaD: 'sD',
+  rowS: 'S',
+  rowDUnit: 'MJy/sr',
+  masked: 'masked',
+  pixelsAtLeast3: 'Pixels with |S| = 3',
+  maxNearA: 'Max |S| within 3 px of A',
+  ariaLabel: 'Difference image, north up, east left. Blue is negative and orange is positive.',
+  minus: 'minus',
+  allEpochs: 'all epochs',
+  allDetectors: 'all detectors',
+  markerA: 'A',
+  markerB: 'B',
+} as const
+
+export const diffIssues = {
+  mixed_kinds: 'A and B must both be frames or both be coadds',
+  detector: 'A and B must use the same detector',
+  epoch: 'A and B must come from different epochs',
+  wavelength_match: 'Temporal frames need matched wavelengths (within one bandwidth)',
+  wavelength_differ: 'Spectral operands need clearly different wavelengths (more than one bandwidth apart, or coadd ranges that barely overlap)',
+  scope: 'Coadd operands have the wrong scope for this mode',
+  same_epoch: 'Spectral operands must share an epoch',
+} as const
+
+export function diffAlignmentBadge(state: 'good' | 'caution' | 'poor', px: string, arcsec: string): string {
+  const word = state === 'good' ? 'good' : state === 'caution' ? 'caution' : 'poor'
+  return `Alignment ${word}: ${px} px (${arcsec} arcsec)`
+}
+
+export function diffPeakSummary(count: number, maxNearA: string): string {
+  return `${diffCopy.pixelsAtLeast3}: ${count}. ${diffCopy.maxNearA}: ${maxNearA}`
+}

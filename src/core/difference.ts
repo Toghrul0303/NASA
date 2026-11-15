@@ -4,7 +4,8 @@
  * This module does not touch React or the DOM.
  */
 import { ALIGN_GOOD_PX, ALIGN_POOR_PX } from '../config/constants'
-import type { Coadd, Frame } from '../contract/types'
+import type { Coadd, Detector, Frame } from '../contract/types'
+import { selectEpochCoadds, selectFrames } from './blink'
 import { percentile, type StretchLimits } from './stretch'
 
 /** One operand: intensity (plane 0) and its 1-sigma (plane 1), both MJy/sr. */
@@ -177,8 +178,11 @@ export function pairingIssues(mode: DiffMode, ctx: PairingContext, a: DiffOperan
   const bothDetector = ca.scope === 'detector' && cb.scope === 'detector'
   if (!bothEpoch && !bothDetector) issues.push('scope')
   if (bothEpoch && ca.epoch_id !== cb.epoch_id) issues.push('same_epoch')
-  const bandwidth = ca.lambda_max_um - ca.lambda_min_um
-  if (!(Math.abs(ca.lambda_mean_um - cb.lambda_mean_um) > bandwidth)) issues.push('wavelength_differ')
+  // A coadd spans a range rather than one bandwidth. Neighbouring detectors overlap slightly at their
+  // edges, so "differ" means the ranges overlap by less than half of the narrower one.
+  const overlap = Math.min(ca.lambda_max_um, cb.lambda_max_um) - Math.max(ca.lambda_min_um, cb.lambda_min_um)
+  const narrower = Math.min(ca.lambda_max_um - ca.lambda_min_um, cb.lambda_max_um - cb.lambda_min_um)
+  if (!(overlap < 0.5 * narrower)) issues.push('wavelength_differ')
   return issues
 }
 
@@ -218,4 +222,72 @@ export function alignmentState(rPair: number | null): AlignmentState {
   if (rPair < ALIGN_GOOD_PX) return 'good'
   if (rPair < ALIGN_POOR_PX) return 'caution'
   return 'poor'
+}
+
+export interface DiffPair {
+  a: DiffOperand
+  b: DiffOperand
+}
+
+/**
+ * Default Temporal pair: first and last epoch of one detector and wavelength window (frames).
+ * The first frame of the earliest epoch is A. B is the frame of the latest epoch whose wavelength
+ * is closest to A and still matched (`|dl| <= bandwidth_A`). Falls back to the first and last
+ * `epoch_detector` coadd of the detector. `null` when neither exists.
+ */
+export function defaultTemporalPair(
+  ctx: PairingContext,
+  detector: Detector,
+  lambda0: number,
+  k: number,
+): DiffPair | null {
+  const inSet = selectFrames(ctx.frames, detector, lambda0, k).sort((p, q) => p.mjd - q.mjd)
+  const first = inSet[0]
+  const last = inSet[inSet.length - 1]
+  if (first && last && last.epoch_id !== first.epoch_id) {
+    let best: Frame | null = null
+    for (const frame of inSet) {
+      if (frame.epoch_id !== last.epoch_id) continue
+      const dl = Math.abs(frame.lambda_um - first.lambda_um)
+      if (!(dl <= first.bandwidth_um)) continue
+      if (!best || dl < Math.abs(best.lambda_um - first.lambda_um)) best = frame
+    }
+    if (best) return { a: { kind: 'frame', index: first.index }, b: { kind: 'frame', index: best.index } }
+  }
+  const epochs = selectEpochCoadds(ctx.coadds, detector)
+  const a = epochs[0]
+  const b = epochs[epochs.length - 1]
+  if (a && b && a !== b && a.epoch_id !== b.epoch_id) {
+    return { a: { kind: 'coadd', index: a.index }, b: { kind: 'coadd', index: b.index } }
+  }
+  return null
+}
+
+/**
+ * Default Spectral pair: the two `detector`-scope coadds with the highest `snr_target`
+ * (a `null` ranks last). Falls back to two frames of the earliest epoch whose wavelengths differ the most.
+ */
+export function defaultSpectralPair(ctx: PairingContext): DiffPair | null {
+  const detectorCoadds = ctx.coadds
+    .filter((coadd) => coadd.scope === 'detector')
+    .sort((p, q) => (q.snr_target ?? Number.NEGATIVE_INFINITY) - (p.snr_target ?? Number.NEGATIVE_INFINITY))
+  const top = detectorCoadds[0]
+  const second = detectorCoadds[1]
+  if (top && second) {
+    const pair = { a: { kind: 'coadd', index: top.index }, b: { kind: 'coadd', index: second.index } } as const
+    if (pairingIssues('spectral', ctx, pair.a, pair.b).length === 0) return pair
+  }
+  const byEpoch = [...ctx.frames].sort((p, q) => p.mjd - q.mjd)
+  const anchor = byEpoch[0]
+  if (!anchor) return null
+  let best: Frame | null = null
+  for (const frame of byEpoch) {
+    if (frame.epoch_id !== anchor.epoch_id) continue
+    if (!(Math.abs(frame.lambda_um - anchor.lambda_um) > anchor.bandwidth_um)) continue
+    if (!best || Math.abs(frame.lambda_um - anchor.lambda_um) > Math.abs(best.lambda_um - anchor.lambda_um)) {
+      best = frame
+    }
+  }
+  if (!best) return null
+  return { a: { kind: 'frame', index: anchor.index }, b: { kind: 'frame', index: best.index } }
 }

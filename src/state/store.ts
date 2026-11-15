@@ -22,6 +22,7 @@ import {
   selectFrames,
   type BlinkMode,
 } from '../core/blink'
+import { defaultSpectralPair, defaultTemporalPair, type DiffMode, type DiffOperand } from '../core/difference'
 import { clampRgbGain, type RgbGains, type RgbMemberPreset } from '../core/rgb'
 import type { Dataset } from '../data/dataset'
 import { loadDataset as fetchDataset } from '../data/loader'
@@ -130,12 +131,22 @@ export type RgbPatch = {
   gains?: Partial<RgbGains>
 }
 
+/** Difference imaging operands. Reset when the dataset changes. §11. */
+export interface DiffState {
+  mode: DiffMode
+  a: DiffOperand | null
+  b: DiffOperand | null
+}
+
+export type DiffPatch = Partial<DiffState>
+
 export interface ToolState {
   tool: ToolId
   frame: FrameViewport
   blink: BlinkState
   sed: SedState
   rgb: RgbState
+  diff: DiffState
 }
 
 export interface JobState {
@@ -172,6 +183,7 @@ interface WorkspaceStore {
   setBlink: (partial: BlinkPatch) => void
   setSed: (partial: SedPatch) => void
   setRgb: (partial: RgbPatch) => void
+  setDiff: (partial: DiffPatch) => void
   stepBlink: (delta: number) => void
   /** Point the frames blink at one `frames.json` row and open the Blink tool. */
   openFrameInBlink: (frameIndex: number) => void
@@ -255,6 +267,22 @@ export function rgbStateFor(dataset: Dataset | null): RgbState {
   }
 }
 
+/** Temporal defaults from the Blink window; an empty dataset leaves both operands unset. */
+export function diffStateFor(dataset: Dataset | null, blink: BlinkState): DiffState {
+  if (!dataset) return { mode: 'temporal', a: null, b: null }
+  return { mode: 'temporal', ...diffPairForMode(dataset, 'temporal', blink) }
+}
+
+/** Default pair for a mode, used when the mode changes. */
+export function diffPairForMode(dataset: Dataset, mode: DiffMode, blink: BlinkState): Pick<DiffState, 'a' | 'b'> {
+  const ctx = { frames: dataset.frames.frames, coadds: dataset.coadds.coadds }
+  const pair =
+    mode === 'temporal'
+      ? defaultTemporalPair(ctx, blink.detector, blink.lambda0, blink.k)
+      : defaultSpectralPair(ctx)
+  return { a: pair?.a ?? null, b: pair?.b ?? null }
+}
+
 function applyRgb(current: RgbState, partial: RgbPatch): RgbState {
   const gains = { ...current.gains, ...partial.gains }
   return {
@@ -326,7 +354,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set) => ({
   view: { ra: 0, dec: 0, fov: DEFAULT_FOV_DEG },
   frameFocus: null,
   gaiaLayer: false,
-  tool: { tool: 'map', frame: initialFrame(), blink: bootBlink, sed: initialSedState(bootBlink), rgb: bootRgb },
+  tool: { tool: 'map', frame: initialFrame(), blink: bootBlink, sed: initialSedState(bootBlink), rgb: bootRgb, diff: diffStateFor(null, bootBlink) },
   dataset: { slug: null, status: 'idle', dataset: null, errorCode: null },
   job: { status: 'idle' },
   ui: {
@@ -354,6 +382,10 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set) => ({
   setRgb: (partial) =>
     set((state) => ({
       tool: { ...state.tool, rgb: applyRgb(state.tool.rgb, partial) },
+    })),
+  setDiff: (partial) =>
+    set((state) => ({
+      tool: { ...state.tool, diff: { ...state.tool.diff, ...partial } },
     })),
   stepBlink: (delta) =>
     set((state) => {
@@ -421,6 +453,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set) => ({
           blink,
           sed: initialSedState(blink),
           rgb: rgbStateFor(null),
+          diff: diffStateFor(null, blink),
         },
       }
     })
@@ -447,6 +480,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set) => ({
             blink,
             sed: sedStateFor(dataset, blink),
             rgb: rgbStateFor(dataset),
+            diff: diffStateFor(dataset, blink),
           },
         }
       })

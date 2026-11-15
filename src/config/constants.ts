@@ -59,3 +59,6 @@ export const ZOOM_MAX = 32
 /** Map field-of-view limits, degrees. */
 export const FOV_MIN_DEG = 0.01
 export const FOV_MAX_DEG = 180
+
+/** Radius around A's predicted position used for the peak |S| summary. FRONTEND_SPEC §11.5. */
+export const DIFF_PEAK_RADIUS_PX = 3

@@ -1,11 +1,17 @@
 import { describe, expect, it } from 'vitest'
+import type { Coadd, Frame } from '../../src/contract/types'
 import { contourLines } from '../../src/core/contours'
 import {
   alignmentState,
   computeDifference,
   countAtLeast,
+  defaultSpectralPair,
+  defaultTemporalPair,
   emptyReason,
+  isStaticSkyPair,
   maxAbsWithin,
+  operandResidual,
+  pairingIssues,
   pairResidual,
   symmetricLimits,
 } from '../../src/core/difference'
@@ -197,5 +203,102 @@ describe('diverging colour map in canvas order', () => {
   it('paints NaN with the mask colour', () => {
     const rgba = divergingRgba(new Float32Array([NaN_, 0]), 1, 2)
     expect(pixel(rgba, 0, 0, 2)).toEqual([...MASK_RGB, 255])
+  })
+})
+
+describe('pairing and defaults', () => {
+  const frame = (
+    index: number,
+    detector: 1 | 2,
+    epoch_id: number,
+    lambda_um: number,
+    mjd: number,
+    alignment_residual_px: number | null = 0.1,
+  ): Frame =>
+    ({
+      index,
+      detector,
+      epoch_id,
+      lambda_um,
+      bandwidth_um: 0.05,
+      mjd,
+      alignment_residual_px,
+    }) as unknown as Frame
+  const coadd = (
+    index: number,
+    scope: 'epoch_detector' | 'detector',
+    epoch_id: number | null,
+    detector: 1 | 2 | null,
+    lo: number,
+    hi: number,
+    snr: number | null,
+    frame_indices: number[] = [],
+  ): Coadd =>
+    ({
+      index,
+      scope,
+      epoch_id,
+      detector,
+      lambda_min_um: lo,
+      lambda_max_um: hi,
+      lambda_mean_um: (lo + hi) / 2,
+      snr_target: snr,
+      frame_indices,
+    }) as unknown as Coadd
+  const frames = [
+    frame(0, 1, 0, 1.0, 10),
+    frame(1, 1, 1, 1.02, 20),
+    frame(2, 1, 2, 1.01, 30),
+    frame(3, 2, 0, 1.5, 10.1),
+    frame(4, 1, 2, 1.4, 30.1, null),
+  ]
+  const coadds = [
+    coadd(0, 'epoch_detector', 0, 1, 0.9, 1.1, 5, [0]),
+    coadd(1, 'epoch_detector', 2, 1, 0.9, 1.1, 5, [2, 4]),
+    coadd(2, 'detector', null, 1, 0.9, 1.1, 10),
+    coadd(3, 'detector', null, 2, 1.3, 1.7, 30),
+    coadd(4, 'detector', null, 2, 1.0, 1.5, null),
+  ]
+  const ctx = { frames, coadds }
+  const f = (index: number) => ({ kind: 'frame', index }) as const
+  const c = (index: number) => ({ kind: 'coadd', index }) as const
+
+  it('enforces the temporal and spectral frame rules', () => {
+    expect(pairingIssues('temporal', ctx, f(0), f(2))).toEqual([])
+    expect(pairingIssues('temporal', ctx, f(0), f(3))).toEqual(['detector', 'epoch', 'wavelength_match'])
+    expect(pairingIssues('temporal', ctx, f(0), f(4))).toEqual(['wavelength_match'])
+    expect(pairingIssues('spectral', ctx, f(0), f(3))).toEqual([])
+    expect(pairingIssues('spectral', ctx, f(0), f(1))).toEqual(['same_epoch', 'wavelength_differ'])
+    expect(pairingIssues('temporal', ctx, f(0), c(0))).toEqual(['mixed_kinds'])
+  })
+
+  it('enforces the coadd rules', () => {
+    expect(pairingIssues('temporal', ctx, c(0), c(1))).toEqual([])
+    expect(pairingIssues('temporal', ctx, c(2), c(3))).toEqual(['scope', 'detector', 'epoch'])
+    expect(pairingIssues('spectral', ctx, c(2), c(3))).toEqual([])
+    expect(pairingIssues('spectral', ctx, c(2), c(4))).toEqual(['wavelength_differ'])
+    expect(isStaticSkyPair(ctx, c(2), c(3))).toBe(true)
+    expect(isStaticSkyPair(ctx, c(0), c(1))).toBe(false)
+  })
+
+  it('takes the worst coadd residual, unknown when any member is null', () => {
+    expect(operandResidual(ctx, f(0))).toBe(0.1)
+    expect(operandResidual(ctx, c(0))).toBe(0.1)
+    expect(operandResidual(ctx, c(1))).toBeNull()
+    expect(operandResidual(ctx, c(2))).toBeNull()
+  })
+
+  it('defaults Temporal to the first and last epoch frames of the window', () => {
+    expect(defaultTemporalPair(ctx, 1, 1.0, 1)).toEqual({ a: f(0), b: f(2) })
+  })
+
+  it('falls back to epoch coadds, then to nothing', () => {
+    expect(defaultTemporalPair(ctx, 1, 9, 1)).toEqual({ a: c(0), b: c(1) })
+    expect(defaultTemporalPair({ frames, coadds: [] }, 1, 9, 1)).toBeNull()
+  })
+
+  it('defaults Spectral to the two highest-SNR detector coadds', () => {
+    expect(defaultSpectralPair(ctx)).toEqual({ a: c(3), b: c(2) })
+    expect(defaultSpectralPair({ frames, coadds: [] })).toEqual({ a: f(0), b: f(3) })
   })
 })

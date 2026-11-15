@@ -14,6 +14,7 @@ import {
 import { URL_DEBOUNCE_MS } from '../config/constants'
 import { AnalyzePosition } from '../jobs/AnalyzePosition'
 import type { AladinMapHandle, MapTargetOption } from '../map/AladinMap'
+import { PARTIAL_DATASET_SLUG } from '../core/tier2'
 import { footprintPolygon } from '../map/footprint'
 import type { Dataset } from '../data/dataset'
 import { TIER1_5_SLUGS, loadRegistry, type RegistryEntry } from '../data/registry'
@@ -276,6 +277,8 @@ export function WorkspacePage() {
     const slug = datasetState.slug
     if (!slug || entries.some((entry) => entry.slug === slug)) return entries
     if ((TIER1_5_SLUGS as readonly string[]).includes(slug)) return entries
+    // The mock partial result is a test fixture; it is offered only while developing.
+    if (slug === PARTIAL_DATASET_SLUG && !import.meta.env.DEV) return entries
     const extra: RegistryEntry = {
       slug,
       tier: 'tier1',

@@ -268,6 +268,7 @@ export const tier2Copy = {
   mockFailed: 'Failed job',
   mockInvalid: 'Invalid body',
   datasetSlug: 'Dataset',
+  liveComingSoon: 'Live analysis is coming soon. Try the preset.',
 } as const
 
 export function tier2SizeLabel(sizeDeg: number): string {

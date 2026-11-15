@@ -60,5 +60,5 @@ export const ZOOM_MAX = 32
 export const FOV_MIN_DEG = 0.01
 export const FOV_MAX_DEG = 180
 
-/** Radius around A's predicted position used for the peak |S| summary. FRONTEND_SPEC ง11.5. */
+/** Radius around A's predicted position used for the peak |S| summary. FRONTEND_SPEC ยง11.5. */
 export const DIFF_PEAK_RADIUS_PX = 3

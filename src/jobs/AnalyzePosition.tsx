@@ -102,6 +102,17 @@ export function AnalyzePosition({ ra, dec, onClose }: { ra: number; dec: number;
           {tier2Copy.close}
         </button>
       </div>
+      <div className="mt-3 space-y-2">
+        <JobProgress status={job.status} queuePositionValue={job.queuePosition} joined={job.joined} slug={job.slug} />
+        <JobErrors
+          failure={job.failure}
+          fieldErrors={job.fieldErrors}
+          errorMessage={job.errorMessage}
+          onRetry={() => {
+            void retryTier2()
+          }}
+        />
+      </div>
       <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
         <dt className="text-white/60">{tier2Copy.ra}</dt>
         <dd className="m-0 font-mono tabular-nums" data-testid="tier2-ra">
@@ -225,17 +236,6 @@ export function AnalyzePosition({ ra, dec, onClose }: { ra: number; dec: number;
           </select>
         </label>
       ) : null}
-      <div className="mt-3 space-y-2">
-        <JobProgress status={job.status} queuePositionValue={job.queuePosition} joined={job.joined} slug={job.slug} />
-        <JobErrors
-          failure={job.failure}
-          fieldErrors={job.fieldErrors}
-          errorMessage={job.errorMessage}
-          onRetry={() => {
-            void retryTier2()
-          }}
-        />
-      </div>
     </section>
   )
 }

@@ -271,6 +271,15 @@ export const tier2Copy = {
   liveComingSoon: 'Live analysis is coming soon. Try the preset.',
 } as const
 
+/** Lab header share buttons. FRONTEND_SPEC §5.4. */
+export const shareCopy = {
+  copyLink: 'Copy link',
+  copyEmbed: 'Copy embed code',
+  copied: 'Copied',
+  copyFailed: 'Copy failed',
+  iframeTitle: 'ExoTrace SPHEREx Lab',
+} as const
+
 export function tier2SizeLabel(sizeDeg: number): string {
   return `${sizeDeg} deg`
 }

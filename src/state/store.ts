@@ -414,6 +414,8 @@ function clampItemIndex(dataset: Dataset | null, blink: BlinkState): BlinkState 
 
 let loadController: AbortController | null = null
 let loadGeneration = 0
+/** A toast closes itself after this long. */
+const TOAST_MS = 2200
 let toastId = 0
 
 function watchReducedMotion(set: (partial: (state: WorkspaceStore) => Partial<WorkspaceStore>) => void): void {
@@ -611,7 +613,7 @@ async function signedInState(user: SupabaseUser, session: SupabaseSession) {
   return { session, user, profile: data.profile, authStatus: 'authenticated' } as const
 }
 
-export const useWorkspaceStore = create<WorkspaceStore>()((set) => ({
+export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => ({
   session: null,
   user: null,
   profile: null,
@@ -738,6 +740,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set) => ({
   pushToast: (message) => {
     const id = ++toastId
     set((state) => ({ ui: { ...state.ui, toasts: [...state.ui.toasts, { id, message }] } }))
+    setTimeout(() => get().dismissToast(id), TOAST_MS)
   },
   dismissToast: (id) =>
     set((state) => ({ ui: { ...state.ui, toasts: state.ui.toasts.filter((toast) => toast.id !== id) } })),

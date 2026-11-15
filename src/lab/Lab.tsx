@@ -1,8 +1,19 @@
 import { lazy, Suspense } from 'react'
-import { datasetErrorMessage, diffCopy, framesNotFetched, gaiaCopy, rgbCopy, sedCopy, tier2Copy } from '../config/copy'
+import {
+  datasetErrorMessage,
+  diffCopy,
+  framesNotFetched,
+  gaiaCopy,
+  rgbCopy,
+  sedCopy,
+  shareCopy,
+  tier2Copy,
+} from '../config/copy'
 import { isToolId, TOOLS, toolById } from '../config/tools'
 import type { Dataset } from '../data/dataset'
+import { buildEmbedCode, buildEmbedUrl, buildShareLink } from '../state/shareUrl'
 import { useWorkspaceStore } from '../state/store'
+import { copyText } from '../ui/clipboard'
 import { CloseIcon } from '../ui/icons'
 import { Skeleton } from '../ui/Skeleton'
 import { Tabs } from '../ui/Tabs'
@@ -206,6 +217,43 @@ function DatasetState({ onRetry }: { onRetry: () => void }) {
   )
 }
 
+/** Copy link and Copy embed code. Both read the URL that the URL sync keeps current. */
+function ShareBar() {
+  const slug = useWorkspaceStore((state) => state.dataset.slug)
+  const title = useWorkspaceStore((state) => state.dataset.dataset?.meta.title ?? null)
+  const pushToast = useWorkspaceStore((state) => state.pushToast)
+
+  async function copy(text: string): Promise<void> {
+    pushToast((await copyText(text)) ? shareCopy.copied : shareCopy.copyFailed)
+  }
+
+  return (
+    <div className="flex items-center justify-end gap-2 px-3 pt-2.5" data-testid="share-bar">
+      <button
+        type="button"
+        className="liquid-glass-btn rounded-full px-3 py-1 text-xs whitespace-nowrap"
+        data-testid="copy-link"
+        onClick={() => {
+          void copy(buildShareLink(window.location.href, slug))
+        }}
+      >
+        {shareCopy.copyLink}
+      </button>
+      <button
+        type="button"
+        className="liquid-glass-btn rounded-full px-3 py-1 text-xs whitespace-nowrap"
+        data-testid="copy-embed"
+        onClick={() => {
+          const heading = title ? `${shareCopy.iframeTitle}: ${title}` : shareCopy.iframeTitle
+          void copy(buildEmbedCode(buildEmbedUrl(window.location.href, slug), heading))
+        }}
+      >
+        {shareCopy.copyEmbed}
+      </button>
+    </div>
+  )
+}
+
 /** Lab sidebar: tool tabs bound to the store. `map` closes the lab. */
 export function Lab() {
   const tool = useWorkspaceStore((state) => state.tool.tool)
@@ -214,9 +262,11 @@ export function Lab() {
   const dataset = useWorkspaceStore((state) => state.dataset.dataset)
   const slug = useWorkspaceStore((state) => state.dataset.slug)
   const loadDataset = useWorkspaceStore((state) => state.loadDataset)
+  const embed = useWorkspaceStore((state) => state.ui.embed)
 
   return (
     <div className="ws-lab-fill">
+      {status === 'ready' && !embed ? <ShareBar /> : null}
       <JobPartialBanner />
       {status === 'ready' && dataset ? <PartialBanner dataset={dataset} /> : null}
       <Tabs

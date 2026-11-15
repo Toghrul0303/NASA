@@ -3,6 +3,8 @@ import { AboutSection } from './ui/AboutSection'
 import { Footer } from './ui/Footer'
 import { HeroSection } from './ui/HeroSection'
 import { Navbar } from './ui/Navbar'
+import { AuthPage } from './pages/AuthPage'
+import { useWorkspaceStore } from './state/store'
 import { PageBackground } from './ui/PageBackground'
 import { WorkspacePage } from './ui/WorkspacePlaceholder'
 
@@ -16,10 +18,18 @@ export function App() {
   const [path, setPath] = useState(currentPath)
 
   useEffect(() => {
+    void useWorkspaceStore.getState().initAuth()
+  }, [])
+
+  useEffect(() => {
     const onPop = () => setPath(currentPath())
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [])
+
+  if (path === '/login' || path === '/signup') {
+    return <AuthPage mode={path === '/signup' ? 'signup' : 'login'} />
+  }
 
   if (path === '/workspace') {
     return <WorkspacePage />

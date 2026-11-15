@@ -26,6 +26,16 @@ powershell -File scripts\prewarm.ps1 -File scripts\prewarm.txt
 
 The list is `scripts/prewarm.txt` (`ra dec name`, one coordinate per line). The script runs `spherex build-coord --ra --dec --name` for each line, then `spherex validate --slug` on the result, and prints one line: `slug frames=N epochs=N seconds=N`. It does not pass `--force` and it does not delete anything. A coordinate whose directory already exists is skipped; its line says `seconds=skipped` and the frames and epochs come from `meta.json`.
 
+## Check presets without calling IRSA
+
+With `spherex serve` already running:
+
+```
+powershell -File scripts\verify_presets.ps1 -Probe
+```
+
+`-Probe` is the only mode. It GETs `/api/health` and `/data/{slug}/meta.json` for the three bodies in `docs/TIER2_PRESETS.md`. It expects HTTP 200 for `c-a55d19970b4b8fd7` and HTTP 404 for Proxima Centauri and Epsilon Eridani. It does not POST `/api/jobs` and it does not call IRSA. Exit 5 means the server is not up. Exit 3 means a slug was not in the expected state.
+
 ## Check the Tier 1 slugs
 
 ```

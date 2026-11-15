@@ -70,7 +70,10 @@ export interface UrlSyncDeps<Timer = ReturnType<typeof setTimeout>> {
   setFov: (fov: number) => void
   loadDataset: (slug: string, options: { recenter: boolean }) => Promise<void>
   getDatasetCenter: () => DatasetCenter | null
-  /** TEMP until F15 replaces this with a real Tier 2 job. */
+  /**
+   * Opens the analyze panel for this coordinate. F15 does not POST here:
+   * an automatic job for an arbitrary position would call IRSA.
+   */
   createJobForCoordinate: (ra: number, dec: number) => void
 }
 

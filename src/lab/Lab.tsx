@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { datasetErrorMessage, diffCopy, framesNotFetched, gaiaCopy, rgbCopy, sedCopy } from '../config/copy'
+import { datasetErrorMessage, diffCopy, framesNotFetched, gaiaCopy, rgbCopy, sedCopy, tier2Copy } from '../config/copy'
 import { isToolId, TOOLS, toolById } from '../config/tools'
 import type { Dataset } from '../data/dataset'
 import { useWorkspaceStore } from '../state/store'
@@ -15,6 +15,21 @@ const SedTool = lazy(() => import('./tools/SedTool').then((mod) => ({ default: m
 
 const LAB_TOOLS = TOOLS.filter((tool) => !tool.closesLab)
 const LOAD_STEPS = ['meta', 'files', 'verification'] as const
+
+function JobPartialBanner() {
+  const partial = useWorkspaceStore((state) => state.job.partial)
+  const count = useWorkspaceStore((state) => state.job.nFailedFetches)
+  if (!partial) return null
+  return (
+    <details
+      data-testid="tier2-partial"
+      className="mx-3 mt-3 rounded-xl bg-amber-500/15 dark:bg-amber-500/10 border border-amber-600/30 dark:border-amber-400/25 text-amber-950 dark:text-amber-200 text-xs px-3.5 py-2.5"
+    >
+      <summary className="cursor-pointer select-none font-medium">{framesNotFetched(count)}</summary>
+      <p className="mt-1.5 mb-0 text-amber-900/85 dark:text-amber-200/80">{tier2Copy.partialDetail}</p>
+    </details>
+  )
+}
 
 function PartialBanner({ dataset }: { dataset: Dataset }) {
   if (dataset.meta.status !== 'partial') return null
@@ -202,6 +217,7 @@ export function Lab() {
 
   return (
     <div className="ws-lab-fill">
+      <JobPartialBanner />
       {status === 'ready' && dataset ? <PartialBanner dataset={dataset} /> : null}
       <Tabs
         label="Laboratory tools"

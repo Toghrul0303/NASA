@@ -12,11 +12,11 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import { URL_DEBOUNCE_MS } from '../config/constants'
-import { liveAnalysisUnavailable } from '../config/copy'
+import { AnalyzePosition } from '../jobs/AnalyzePosition'
 import type { AladinMapHandle, MapTargetOption } from '../map/AladinMap'
 import { footprintPolygon } from '../map/footprint'
 import type { Dataset } from '../data/dataset'
-import { loadRegistry, type RegistryEntry } from '../data/registry'
+import { TIER1_5_SLUGS, loadRegistry, type RegistryEntry } from '../data/registry'
 import { useWorkspaceStore } from '../state/store'
 import { createUrlSync, wrapRa, type UrlSync, type UrlSyncWindow } from '../state/urlSync'
 import { applyTheme } from './theme'
@@ -133,11 +133,19 @@ export function WorkspacePage() {
   const theme = useWorkspaceStore((state) => state.ui.theme)
   const setTheme = useWorkspaceStore((state) => state.setTheme)
   const [entries, setEntries] = useState<readonly RegistryEntry[]>([])
+  const [pending, setPending] = useState<{ ra: number; dec: number } | null>(null)
+  const job = useWorkspaceStore((state) => state.job)
+  const resetTier2Notice = useWorkspaceStore((state) => state.resetTier2Notice)
   const [labPct, setLabPct] = useState(LAB_DEFAULT)
   const [labDismissed, setLabDismissed] = useState(false)
   const mapRef = useRef<HTMLDivElement>(null)
   const mapApi = useRef<AladinMapHandle | null>(null)
   const syncRef = useRef<UrlSync | null>(null)
+  const openAnalyzeRef = useRef<(ra: number, dec: number) => void>(() => {})
+  openAnalyzeRef.current = (ra, dec) => {
+    resetTier2Notice()
+    setPending({ ra, dec })
+  }
   const devGaiaPatched = useRef<Dataset | null>(null)
 
   useLayoutEffect(() => {
@@ -199,18 +207,18 @@ export function WorkspacePage() {
         return { ra: dataset.meta.center.ra_deg, dec: dataset.meta.center.dec_deg }
       },
       createJobForCoordinate: (ra, dec) => {
-        // TEMP until F15
         const store = useWorkspaceStore.getState()
-        if (!store.ui.toasts.some((toast) => toast.message === liveAnalysisUnavailable)) {
-          store.pushToast(liveAnalysisUnavailable)
-        }
         store.setTool('map')
         store.setView({ ra, dec, fov: store.view.fov })
+        openAnalyzeRef.current(ra, dec)
       },
     })
     syncRef.current = sync
     const unsubscribe = useWorkspaceStore.subscribe((state, previous) => {
       if (state.tool.tool !== previous.tool.tool) sync.onToolChanged(state.tool.tool)
+      const nextNav = state.job.navigation
+      const prevNav = previous.job.navigation
+      if (nextNav && nextNav.token !== prevNav?.token) sync.onSlugChanged(nextNav.slug)
     })
     void sync.boot()
     return () => {
@@ -244,6 +252,10 @@ export function WorkspacePage() {
   }, [datasetState.dataset, datasetState.status])
 
   useEffect(() => {
+    if (job.status === 'complete' && job.cached) setPending(null)
+  }, [job.cached, job.navigation?.token, job.status])
+
+  useEffect(() => {
     const controller = new AbortController()
     let cancelled = false
     void loadRegistry({ signal: controller.signal }).then((next) => {
@@ -263,6 +275,7 @@ export function WorkspacePage() {
   const options = useMemo(() => {
     const slug = datasetState.slug
     if (!slug || entries.some((entry) => entry.slug === slug)) return entries
+    if ((TIER1_5_SLUGS as readonly string[]).includes(slug)) return entries
     const extra: RegistryEntry = {
       slug,
       tier: 'tier1',
@@ -346,7 +359,6 @@ export function WorkspacePage() {
   }
 
   const tier1 = options.filter((entry) => entry.tier === 'tier1')
-  const tier15 = options.filter((entry) => entry.tier === 'tier1_5')
   const headerTitle =
     datasetState.status === 'loading'
       ? 'Loading dataset…'
@@ -397,7 +409,7 @@ export function WorkspacePage() {
                 <span className="ws-sr">Target</span>
                 <select
                   className="rounded-full bg-white/[0.05] border border-white/[0.14] hover:border-[rgb(240,255,60)]/60 text-white/90 text-xs pl-3 pr-7 py-1.5 max-w-[165px] truncate appearance-none min-w-0"
-                  value={datasetState.slug ?? ''}
+                  value={tier1.some((entry) => entry.slug === datasetState.slug) ? (datasetState.slug ?? '') : ''}
                   onChange={(event) => {
                     chooseSlug(event.target.value)
                   }}
@@ -408,20 +420,6 @@ export function WorkspacePage() {
                   {tier1.length > 0 ? (
                     <optgroup label="Tier 1" className="bg-[#0B0C10] text-white">
                       {tier1.map((entry) => (
-                        <option
-                          key={entry.slug}
-                          value={entry.slug}
-                          disabled={!entry.available}
-                          className={entry.available ? 'bg-[#0B0C10] text-white' : 'bg-[#0B0C10] text-white/35'}
-                        >
-                          {entry.title ?? entry.slug}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ) : null}
-                  {tier15.length > 0 ? (
-                    <optgroup label="Tier 1.5" className="bg-[#0B0C10] text-white">
-                      {tier15.map((entry) => (
                         <option
                           key={entry.slug}
                           value={entry.slug}
@@ -466,6 +464,7 @@ export function WorkspacePage() {
               mapRef={(handle) => {
                 mapApi.current = handle
               }}
+              onClick={(ra, dec) => openAnalyzeRef.current(ra, dec)}
               onViewChange={(next) => {
                 const ra = wrapRa(next.ra)
                 syncRef.current?.onMapViewChanged(ra, next.dec, next.fov)
@@ -476,6 +475,14 @@ export function WorkspacePage() {
               }}
             />
           </Suspense>
+          {pending ? (
+            <AnalyzePosition
+              key={`${pending.ra}:${pending.dec}`}
+              ra={pending.ra}
+              dec={pending.dec}
+              onClose={() => setPending(null)}
+            />
+          ) : null}
           <button
             type="button"
             className="ws-open-lab-btn hidden lg:inline-flex liquid-glass-cta absolute top-3 right-3 z-30 h-9 px-4 rounded-full text-xs font-medium items-center gap-1.5 whitespace-nowrap"

@@ -462,7 +462,7 @@ export function isFailedEvent(value: unknown): value is FailedEvent {
   )
 }
 
-export function isInvalidSizeBody(value: unknown): boolean {
+export function isInvalidSizeBody(value: unknown): value is typeof INVALID_SIZE_BODY {
   if (!isRecord(value)) return false
   return (
     value.ra_deg === INVALID_SIZE_BODY.ra_deg && value.dec_deg === INVALID_SIZE_BODY.dec_deg && value.size_deg === 0.3

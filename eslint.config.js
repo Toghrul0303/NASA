@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
   {
-    ignores: ['dist', 'node_modules', 'public', 'coverage'],
+    ignores: ['dist', 'node_modules', 'public', 'coverage', 'backend/.venv', 'data'],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,

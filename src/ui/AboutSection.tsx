@@ -1,3 +1,4 @@
+import { aboutGlossary, aboutGlossaryCopy } from '../config/copy'
 import { PillButton } from './PillButton'
 
 const facts = ['102 channels', '6 detectors', 'Gaia DR3 check']
@@ -31,6 +32,26 @@ export function AboutSection() {
           </ul>
         </div>
       </div>
+
+      <section
+        className="mx-auto mt-6 w-full rounded-[25px] border border-white/10 bg-[#050505]/55 p-[clamp(24px,5vw,64px)] backdrop-blur-[14px]"
+        style={{ maxWidth: 'var(--container-max)' }}
+        aria-labelledby="glossary-title"
+        id="glossary"
+      >
+        <p className="eyebrow">{aboutGlossaryCopy.eyebrow}</p>
+        <h2 id="glossary-title" className="m-0 text-3xl sm:text-4xl font-light tracking-tight text-white">
+          {aboutGlossaryCopy.title}
+        </h2>
+        <dl className="mt-8 mb-0 grid gap-x-10 gap-y-5 sm:grid-cols-2" aria-label={aboutGlossaryCopy.label}>
+          {aboutGlossary.map((entry) => (
+            <div key={entry.id} id={`glossary-${entry.id}`} className="min-w-0">
+              <dt className="text-sm font-medium text-white">{entry.term}</dt>
+              <dd className="m-0 mt-1 text-[14px] leading-relaxed text-white/60">{entry.definition}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
 
       <div className="about-actions">
         <PillButton href="/workspace" variant="secondary">

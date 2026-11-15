@@ -35,6 +35,8 @@ export interface RawEnv {
   VITE_IRSA_MOST_URL?: string
   /** `1` or `true` serves Tier 2 jobs from the captured samples. Unset uses the API. */
   VITE_USE_MOCKS?: string
+  /** `1` or `true` lets the Analyze panel run any position. Unset means the preset only. */
+  VITE_ENABLE_LIVE_RUN?: string
   /** Milliseconds between mock queued, running, and complete. */
   VITE_MOCK_JOB_DELAY_MS?: string
 }
@@ -48,6 +50,8 @@ export interface AppEnv {
   irsaSpectrophotometryUrl: string | undefined
   irsaMostUrl: string | undefined
   useMocks: boolean
+  /** Fail closed: without `1` the Analyze panel can run only the safe preset. */
+  enableLiveRun: boolean
   mockJobDelayMs: number
 }
 
@@ -87,6 +91,7 @@ export function readEnv(raw: RawEnv): AppEnv {
     irsaSpectrophotometryUrl: parseOptional(raw.VITE_IRSA_SPECTROPHOTOMETRY_URL),
     irsaMostUrl: parseOptional(raw.VITE_IRSA_MOST_URL),
     useMocks: parseBool(raw.VITE_USE_MOCKS, false),
+    enableLiveRun: parseBool(raw.VITE_ENABLE_LIVE_RUN, false),
     mockJobDelayMs: parseDelayMs(raw.VITE_MOCK_JOB_DELAY_MS, 800),
   }
 }

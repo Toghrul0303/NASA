@@ -268,6 +268,147 @@ export const tier2Copy = {
   mockFailed: 'Failed job',
   mockInvalid: 'Invalid body',
   datasetSlug: 'Dataset',
+  liveComingSoon: 'Live analysis is coming soon. Try the preset.',
+} as const
+
+/** About page glossary. Plain-language terms for first-time visitors. */
+export const aboutGlossaryCopy = {
+  eyebrow: 'Glossary',
+  title: 'Words you will meet',
+  label: 'Glossary of terms',
+} as const
+
+export interface AboutGlossaryEntry {
+  id: string
+  term: string
+  definition: string
+}
+
+export const aboutGlossary: readonly AboutGlossaryEntry[] = [
+  {
+    id: 'spherex',
+    term: 'SPHEREx',
+    definition: 'NASA all-sky infrared survey telescope that maps the sky in 102 colours (0.75 to 5 micrometres).',
+  },
+  {
+    id: 'infrared',
+    term: 'Infrared',
+    definition: 'Light redder than our eyes see; it passes through dust and shows cool objects.',
+  },
+  {
+    id: 'wavelength',
+    term: 'Wavelength (µm)',
+    definition: 'The colour of light; 1 µm is one millionth of a metre.',
+  },
+  {
+    id: 'pixel',
+    term: 'Pixel (6.15 arcsec)',
+    definition: 'The smallest image square; close stars can blend inside one pixel.',
+  },
+  {
+    id: 'arcsecond',
+    term: 'Arcsecond',
+    definition: 'A tiny angle; 3600 arcseconds make one degree, and the Moon is about 1800 arcseconds wide.',
+  },
+  {
+    id: 'ra-dec',
+    term: 'RA / Dec',
+    definition: 'Sky coordinates, like longitude and latitude.',
+  },
+  {
+    id: 'epoch',
+    term: 'Epoch',
+    definition: 'A group of observations taken close in time; SPHEREx revisits a spot about every 6 months.',
+  },
+  {
+    id: 'blink',
+    term: 'Blink',
+    definition: 'Showing images from different times in turn; fixed stars stay still, movers jump.',
+  },
+  {
+    id: 'proper-motion',
+    term: 'Proper motion',
+    definition: 'A star’s yearly shift on the sky, in milliarcseconds per year (1 arcsecond = 1000 mas).',
+  },
+  {
+    id: 'sed',
+    term: 'SED',
+    definition: 'Spectral energy distribution, an object’s brightness at each colour.',
+  },
+  {
+    id: 'lambda-time',
+    term: 'Lambda-time plane',
+    definition: 'Brightness by colour and time in one chart.',
+  },
+  {
+    id: 'sigma',
+    term: 'Sigma',
+    definition: 'Measurement uncertainty; 3 sigma means very unlikely to be chance (about 0.3 percent).',
+  },
+  {
+    id: 'difference-image',
+    term: 'Difference image',
+    definition:
+      'One image minus another; fixed sources cancel and changes remain, and a mover looks like a plus and minus pair.',
+  },
+  {
+    id: 'false-colour',
+    term: 'False-colour RGB',
+    definition: 'Infrared colours shown as red, green and blue; the colours are assigned, not real.',
+  },
+  {
+    id: 'gaia',
+    term: 'Gaia',
+    definition: 'ESA catalogue of positions and motions of over a billion stars, used as a cross-check.',
+  },
+  {
+    id: 'dichroic-gap',
+    term: 'Dichroic gap',
+    definition: 'A small gap in SPHEREx coverage near 2.4 µm (channels 50 and 51).',
+  },
+  {
+    id: 'zodiacal-light',
+    term: 'Zodiacal light',
+    definition: 'Sunlight scattered by dust in the solar system; a background that is subtracted.',
+  },
+  {
+    id: 'brown-dwarf',
+    term: 'Brown dwarf',
+    definition: 'Heavier than a planet but too light to be a star; cold and bright in infrared.',
+  },
+]
+
+/** Community concept preview. Nothing on that page is saved or shared. */
+export const communityCopy = {
+  navLabel: 'Community',
+  eyebrow: 'Community',
+  title: 'Analyses, shared',
+  banner: 'Concept preview, not live. Nothing here is saved or shared.',
+  intro: 'A look at how shared analyses could appear. Each card opens a real Tier 1 view in the Lab.',
+  tool: 'Tool',
+  target: 'Target',
+  openAnalysis: 'Open analysis',
+  comment: 'Comment',
+  fork: 'Fork',
+  reproduce: 'Reproduce',
+  comingLater: 'Coming later',
+  roadmapTitle: 'Roadmap',
+  roadmapLabel: 'Roadmap steps',
+} as const
+
+export const roadmapSteps = [
+  { id: 'share', title: 'Share', detail: 'Copy a link or embed code for any view.', status: 'Live now', live: true },
+  { id: 'notebook', title: 'Notebook', detail: 'Keep notes next to an analysis.', status: 'Coming later', live: false },
+  { id: 'community', title: 'Community', detail: 'Publish, comment and fork.', status: 'Coming later', live: false },
+] as const
+
+/** Lab header share buttons. FRONTEND_SPEC §5.4. */
+export const shareCopy = {
+  copyLink: 'Copy link',
+  copyEmbed: 'Copy embed code',
+  copied: 'Copied',
+  copyFailed: 'Copy failed',
+  iframeTitle: 'ExoTrace SPHEREx Lab',
 } as const
 
 export function tier2SizeLabel(sizeDeg: number): string {
@@ -512,7 +653,7 @@ export function rgbGroupSnr(blue: string, green: string, red: string, min: strin
   return `Group SNR B ${blue}, G ${green}, R ${red}; min ${min}`
 }
 
-/** Difference imaging. FRONTEND_SPEC �11. A difference map is never described as a detection. */
+/** Difference imaging. FRONTEND_SPEC §11. A difference map is never described as a detection. */
 export const diffCopy = {
   loading: 'Loading difference imaging',
   modeLabel: 'Difference mode',
@@ -523,7 +664,7 @@ export const diffCopy = {
   operandB: 'Operand B',
   framesGroup: 'Frames',
   coaddsGroup: 'Coadds',
-  contours: 'Contours at �3',
+  contours: 'Contours at ±3',
   noOperand: 'Choose an operand',
   needsTwoFrames: 'Needs two frames',
   identical: 'A and B are the same image, so the difference is empty',

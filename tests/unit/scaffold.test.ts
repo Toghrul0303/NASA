@@ -115,8 +115,16 @@ describe('env', () => {
       irsaSpectrophotometryUrl: undefined,
       irsaMostUrl: undefined,
       useMocks: false,
+      enableLiveRun: false,
       mockJobDelayMs: 800,
     })
+  })
+
+  it('keeps live analysis off unless VITE_ENABLE_LIVE_RUN is 1 or true', () => {
+    expect(readEnv({}).enableLiveRun).toBe(false)
+    expect(readEnv({ VITE_ENABLE_LIVE_RUN: '0' }).enableLiveRun).toBe(false)
+    expect(readEnv({ VITE_ENABLE_LIVE_RUN: 'yes' }).enableLiveRun).toBe(false)
+    expect(readEnv({ VITE_ENABLE_LIVE_RUN: '1' }).enableLiveRun).toBe(true)
   })
 
   it('reads set values and fails the cube gate closed', () => {

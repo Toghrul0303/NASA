@@ -9,6 +9,7 @@ interface ImportMetaEnv {
   readonly VITE_IRSA_SPECTROPHOTOMETRY_URL?: string
   readonly VITE_IRSA_MOST_URL?: string
   readonly VITE_USE_MOCKS?: string
+  readonly VITE_ENABLE_LIVE_RUN?: string
   readonly VITE_MOCK_JOB_DELAY_MS?: string
 }
 

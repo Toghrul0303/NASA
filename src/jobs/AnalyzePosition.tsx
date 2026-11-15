@@ -52,6 +52,7 @@ export function AnalyzePosition({ ra, dec, onClose }: { ra: number; dec: number;
   const shownRa = preset ? preset.body.ra_deg : ra
   const shownDec = preset ? preset.body.dec_deg : dec
   const busy = job.status === 'submitting' || job.status === 'queued' || job.status === 'running'
+  const live = env.enableLiveRun
   const sizeError = job.fieldErrors.some((detail) => detail.field === 'size_deg')
 
   useEffect(() => {
@@ -74,6 +75,14 @@ export function AnalyzePosition({ ra, dec, onClose }: { ra: number; dec: number;
     setPresetId(next.id)
     if (next.body.size_deg) setSizeDeg(next.body.size_deg)
     setView({ ra: next.body.ra_deg, dec: next.body.dec_deg, fov })
+  }
+
+  /** Live run off: the preset is the only thing that can be sent, with its own body. */
+  function runPreset(next: Tier2Preset): void {
+    if (live || !next.safe || busy) return
+    setPresetId(next.id)
+    setView({ ra: next.body.ra_deg, dec: next.body.dec_deg, fov })
+    void submitTier2(next.body)
   }
 
   function runBody(): Tier2Body {
@@ -123,7 +132,12 @@ export function AnalyzePosition({ ra, dec, onClose }: { ra: number; dec: number;
           {formatCoord(shownDec)}
         </dd>
       </dl>
-      <fieldset className="mt-3 border-0 p-0" aria-invalid={sizeError || undefined}>
+      {live ? null : (
+        <p className="m-0 mt-3 text-xs text-amber-200" role="status" data-testid="tier2-live-off">
+          {tier2Copy.liveComingSoon}
+        </p>
+      )}
+      <fieldset className="mt-3 border-0 p-0" disabled={!live} aria-invalid={sizeError || undefined}>
         <legend className="text-xs text-white/70">{tier2Copy.size}</legend>
         <div className="mt-1.5 flex gap-2">
           {SIZE_DEG_CHOICES.map((size) => (
@@ -141,6 +155,7 @@ export function AnalyzePosition({ ra, dec, onClose }: { ra: number; dec: number;
                 name={sizeName}
                 value={size}
                 checked={sizeDeg === size}
+                disabled={!live}
                 onChange={() => setSizeDeg(size)}
               />
               {tier2SizeLabel(size)}
@@ -153,42 +168,49 @@ export function AnalyzePosition({ ra, dec, onClose }: { ra: number; dec: number;
           type="button"
           className="liquid-glass-cta rounded-full px-4 py-1.5 text-xs font-medium disabled:opacity-50"
           data-testid="tier2-run"
-          disabled={busy}
+          disabled={busy || !live}
+          title={live ? undefined : tier2Copy.liveComingSoon}
           onClick={() => {
             void submitTier2(runBody(), mockState === '' ? undefined : mockState)
           }}
         >
           {tier2Copy.run}
         </button>
-        <button
-          type="button"
-          className="liquid-glass-btn rounded-full px-3 py-1.5 text-xs disabled:opacity-50"
-          data-testid="tier2-invalid-size"
-          disabled={busy}
-          onClick={() => {
-            void submitTier2(INVALID_SIZE_BODY)
-          }}
-        >
-          {tier2Copy.invalidSize}
-        </button>
+        {env.useMocks ? (
+          <button
+            type="button"
+            className="liquid-glass-btn rounded-full px-3 py-1.5 text-xs disabled:opacity-50"
+            data-testid="tier2-invalid-size"
+            disabled={busy}
+            onClick={() => {
+              void submitTier2(INVALID_SIZE_BODY)
+            }}
+          >
+            {tier2Copy.invalidSize}
+          </button>
+        ) : null}
       </div>
       <div className="mt-3">
         <p className="m-0 text-xs text-white/70">{tier2Copy.presets}</p>
         <div className="mt-1.5 flex flex-col gap-1.5">
           {TIER2_PRESETS.map((entry) => {
             const selected = entry.id === presetId
+            const locked = !live && !entry.safe
             return (
               <button
                 key={entry.id}
                 type="button"
                 data-testid={`tier2-preset-${entry.id}`}
                 aria-pressed={selected}
+                disabled={locked || (!live && busy)}
                 className={
-                  selected
+                  locked
+                    ? 'rounded-xl border border-white/10 bg-transparent px-3 py-2 text-left text-xs text-white/40'
+                    : selected
                     ? 'rounded-xl border border-[rgb(240,255,60)]/70 bg-white/[0.06] px-3 py-2 text-left text-xs'
                     : 'rounded-xl border border-white/12 bg-transparent px-3 py-2 text-left text-xs text-white/85'
                 }
-                onClick={() => choosePreset(entry)}
+                onClick={() => (live ? choosePreset(entry) : runPreset(entry))}
               >
                 <span className="flex items-center justify-between gap-2">
                   <span>{entry.label}</span>

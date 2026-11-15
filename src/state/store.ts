@@ -32,6 +32,19 @@ import {
 } from '../core/blink'
 import { defaultSpectralPair, defaultTemporalPair, type DiffMode, type DiffOperand } from '../core/difference'
 import { clampRgbGain, type RgbGains, type RgbMemberPreset } from '../core/rgb'
+import {
+  getProfile,
+  getSession,
+  signInWithUsername,
+  signOut,
+  signUp,
+  type AuthError,
+  type SignInWithUsernameInput,
+  type SignUpInput,
+  type SupabaseProfileRow,
+  type SupabaseSession,
+  type SupabaseUser,
+} from '../data/authClient'
 import type { Dataset } from '../data/dataset'
 import { loadDataset as fetchDataset } from '../data/loader'
 import {
@@ -215,7 +228,19 @@ export interface UiState {
   toasts: readonly ToastMessage[]
 }
 
+export type AuthStatus = 'idle' | 'loading' | 'authenticated' | 'unauthenticated'
+
 interface WorkspaceStore {
+  session: SupabaseSession | null
+  user: SupabaseUser | null
+  profile: SupabaseProfileRow | null
+  authStatus: AuthStatus
+  /** Restore the stored session on app boot. */
+  initAuth: () => Promise<void>
+  /** Resolve to the error to show, or null on success. */
+  signUpUser: (input: SignUpInput) => Promise<AuthError | null>
+  loginUser: (input: SignInWithUsernameInput) => Promise<AuthError | null>
+  logoutUser: () => Promise<void>
   view: ViewState
   /** Latest source the Gaia table asked the canvas to centre on. A new object each time. */
   frameFocus: FrameFocus | null
@@ -389,6 +414,8 @@ function clampItemIndex(dataset: Dataset | null, blink: BlinkState): BlinkState 
 
 let loadController: AbortController | null = null
 let loadGeneration = 0
+/** A toast closes itself after this long. */
+const TOAST_MS = 2200
 let toastId = 0
 
 function watchReducedMotion(set: (partial: (state: WorkspaceStore) => Partial<WorkspaceStore>) => void): void {
@@ -577,7 +604,53 @@ const bootReducedMotion = prefersReducedMotion()
 const bootBlink = blinkForFrames([], bootReducedMotion)
 const bootRgb = rgbStateFor(null)
 
-export const useWorkspaceStore = create<WorkspaceStore>()((set) => ({
+let authGeneration = 0
+
+const SIGNED_OUT = { session: null, user: null, profile: null, authStatus: 'unauthenticated' } as const
+
+async function signedInState(user: SupabaseUser, session: SupabaseSession) {
+  const { data } = await getProfile(user.id)
+  return { session, user, profile: data.profile, authStatus: 'authenticated' } as const
+}
+
+export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => ({
+  session: null,
+  user: null,
+  profile: null,
+  authStatus: 'idle',
+  initAuth: async () => {
+    const generation = ++authGeneration
+    set({ authStatus: 'loading' })
+    try {
+      const { data } = await getSession()
+      const session = data.session
+      const next = session ? await signedInState(session.user, session) : SIGNED_OUT
+      if (generation === authGeneration) set(next)
+    } catch {
+      if (generation === authGeneration) set(SIGNED_OUT)
+    }
+  },
+  signUpUser: async (input) => {
+    const generation = ++authGeneration
+    const { data, error } = await signUp(input)
+    if (error) return error
+    const next = await signedInState(data.user, data.session)
+    if (generation === authGeneration) set(next)
+    return null
+  },
+  loginUser: async (input) => {
+    const generation = ++authGeneration
+    const { data, error } = await signInWithUsername(input)
+    if (error) return error
+    const next = await signedInState(data.user, data.session)
+    if (generation === authGeneration) set(next)
+    return null
+  },
+  logoutUser: async () => {
+    authGeneration += 1
+    await signOut()
+    set(SIGNED_OUT)
+  },
   view: { ra: 0, dec: 0, fov: DEFAULT_FOV_DEG },
   frameFocus: null,
   gaiaLayer: false,
@@ -667,6 +740,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set) => ({
   pushToast: (message) => {
     const id = ++toastId
     set((state) => ({ ui: { ...state.ui, toasts: [...state.ui.toasts, { id, message }] } }))
+    setTimeout(() => get().dismissToast(id), TOAST_MS)
   },
   dismissToast: (id) =>
     set((state) => ({ ui: { ...state.ui, toasts: state.ui.toasts.filter((toast) => toast.id !== id) } })),

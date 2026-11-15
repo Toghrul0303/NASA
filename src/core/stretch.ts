@@ -15,6 +15,9 @@ export interface StretchLimits {
 
 export type MaskRgb = readonly [number, number, number]
 
+/** Mask colour `#2B2F3A`. FRONTEND_SPEC §15.3. */
+export const MASK_RGB: MaskRgb = [0x2b, 0x2f, 0x3a]
+
 function finiteValues(values: Float32Array): Float32Array {
   let count = 0
   for (let i = 0; i < values.length; i += 1) {

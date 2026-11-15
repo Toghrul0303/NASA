@@ -1482,6 +1482,7 @@ html.light .ws-pill--primary:hover:not(:disabled) {
 }
 
 .ws-seg button {
+  position: relative;
   border-radius: 9999px;
   min-height: 28px;
   padding: 0 12px;
@@ -1503,6 +1504,23 @@ html.light .ws-pill--primary:hover:not(:disabled) {
 
 .ws-seg button[aria-checked='true'] {
   font-weight: 500;
+}
+
+.ws-seg button[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.ws-seg button .ws-tip {
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.ws-seg button:hover .ws-tip,
+.ws-seg button:focus .ws-tip,
+.ws-seg button:focus-visible .ws-tip {
+  display: block;
 }
 
 .ws-det {

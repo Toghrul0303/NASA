@@ -5,7 +5,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 import { ASINH_SOFTENING } from '../config/constants'
 import { toCanvasOrder } from '../core/binary'
-import { renderGrayscale, type MaskRgb, type StretchLimits } from '../core/stretch'
+import { MASK_RGB, renderGrayscale, type StretchLimits } from '../core/stretch'
 import { gridToOverlay, pixelToWorld, type Grid, type OverlayPoint } from '../core/wcs'
 import { useWorkspaceStore, type FrameViewport } from '../state/store'
 import {
@@ -19,8 +19,6 @@ import {
   type ViewportSize,
 } from './viewport'
 
-/** Mask colour `#2B2F3A`. Masked pixels are never black. */
-const MASK_RGB: MaskRgb = [0x2b, 0x2f, 0x3a]
 const HATCH_ZOOM = 8
 const HATCH_CSS = '#d7dee8'
 const LETTERBOX = '#05070b'
@@ -36,14 +34,24 @@ export interface FrameOverlayHelpers {
   W: number
 }
 
-export interface FrameCanvasProps {
-  /** Intensity plane in binary order (`y = 0` southernmost). */
-  plane: Float32Array
+/** RGBA already in canvas order (row 0 at the top). Drawn instead of the stretched plane. */
+export interface CanvasImage {
+  rgba: Uint8ClampedArray
+  width: number
+  height: number
+}
+
+/** Extra hover-readout line. RGB uses slot intensities; difference imaging uses D, sigma, and S. */
+export interface ReadoutRow {
+  label: string
+  value: string
+}
+
+interface FrameCanvasBase {
   /** Sigma plane in binary order, same shape as `plane`. */
   sigma?: Float32Array
   H: number
   W: number
-  limits: StretchLimits
   grid: Grid
   pixelScaleArcsec: number
   /**
@@ -53,7 +61,29 @@ export interface FrameCanvasProps {
   drawOverlay?: (ctx: CanvasRenderingContext2D, helpers: FrameOverlayHelpers) => void
   ariaLabel: string
   caption: string
+  /**
+   * When `image` changes, blend from the previous image over this many milliseconds.
+   * Skipped when the user prefers reduced motion.
+   */
+  crossfadeMs?: number
+  /** Extra label/value rows for the hover readout, in binary pixel coordinates. */
+  readoutRows?: (x: number, y: number) => readonly ReadoutRow[]
 }
+
+export type FrameCanvasProps = FrameCanvasBase &
+  (
+    | {
+        /** Intensity plane in binary order (`y = 0` southernmost). */
+        plane: Float32Array
+        limits: StretchLimits
+        image?: CanvasImage
+      }
+    | {
+        plane?: Float32Array
+        limits?: StretchLimits
+        image: CanvasImage
+      }
+  )
 
 interface Readout {
   x: number
@@ -63,16 +93,20 @@ interface Readout {
   intensity: number
   sigma: number | undefined
   masked: boolean
+  hasPlane: boolean
+  rows: readonly ReadoutRow[]
 }
 
 interface StageProps {
-  plane: Float32Array
+  plane: Float32Array | undefined
+  rgba: Uint8ClampedArray | undefined
   sigma: Float32Array | undefined
   H: number
   W: number
   grid: Grid
   pixelScaleArcsec: number
   drawOverlay: FrameCanvasProps['drawOverlay']
+  readoutRows: FrameCanvasProps['readoutRows']
 }
 
 interface LocalPoint {
@@ -93,6 +127,24 @@ interface PinchGesture {
   iy: number
   dist: number
   zoom: number
+}
+
+function renderRgba(rgba: Uint8ClampedArray, width: number, height: number): HTMLCanvasElement | null {
+  if (width <= 0 || height <= 0 || rgba.length !== width * height * 4) return null
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return null
+  const pixels = ctx.createImageData(width, height)
+  pixels.data.set(rgba)
+  ctx.putImageData(pixels, 0, 0)
+  return canvas
+}
+
+function drawBitmap(ctx: CanvasRenderingContext2D, source: CanvasImageSource & { width: number; height: number }, destW: number, destH: number): void {
+  if (source.width === destW && source.height === destH) ctx.drawImage(source, 0, 0)
+  else ctx.drawImage(source, 0, 0, destW, destH)
 }
 
 function renderOffscreen(plane: Float32Array, H: number, W: number, limits: StretchLimits): HTMLCanvasElement | null {
@@ -125,6 +177,14 @@ function sameView(a: FrameViewport, b: FrameViewport): boolean {
   return a.zoom === b.zoom && a.panX === b.panX && a.panY === b.panY
 }
 
+function sameRows(a: readonly ReadoutRow[], b: readonly ReadoutRow[]): boolean {
+  if (a.length !== b.length) return false
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i]?.label !== b[i]?.label || a[i]?.value !== b[i]?.value) return false
+  }
+  return true
+}
+
 function drawMaskHatch(
   ctx: CanvasRenderingContext2D,
   plane: Float32Array,
@@ -143,6 +203,36 @@ function drawMaskHatch(
     for (let col = 0; col < W; col += 1) {
       const value = plane[rowIndex + col]
       if (value !== undefined && !Number.isNaN(value)) continue
+      ctx.moveTo(col + 0.12, row + 0.88)
+      ctx.lineTo(col + 0.88, row + 0.12)
+      ctx.moveTo(col + 0.12, row + 0.5)
+      ctx.lineTo(col + 0.5, row + 0.12)
+      ctx.moveTo(col + 0.5, row + 0.88)
+      ctx.lineTo(col + 0.88, row + 0.5)
+    }
+  }
+  ctx.stroke()
+  ctx.restore()
+}
+
+function drawRgbaMaskHatch(
+  ctx: CanvasRenderingContext2D,
+  rgba: Uint8ClampedArray,
+  H: number,
+  W: number,
+  cssPixel: number,
+): void {
+  if (rgba.length !== H * W * 4) return
+  const [maskR, maskG, maskB] = MASK_RGB
+  ctx.save()
+  ctx.strokeStyle = HATCH_CSS
+  ctx.lineWidth = 1.5 * cssPixel
+  ctx.lineCap = 'butt'
+  ctx.beginPath()
+  for (let row = 0; row < H; row += 1) {
+    for (let col = 0; col < W; col += 1) {
+      const offset = (row * W + col) * 4
+      if (rgba[offset] !== maskR || rgba[offset + 1] !== maskG || rgba[offset + 2] !== maskB) continue
       ctx.moveTo(col + 0.12, row + 0.88)
       ctx.lineTo(col + 0.88, row + 0.12)
       ctx.moveTo(col + 0.12, row + 0.5)
@@ -258,10 +348,14 @@ export function FrameCanvas({
   drawOverlay,
   ariaLabel,
   caption,
+  image,
+  crossfadeMs,
+  readoutRows,
 }: FrameCanvasProps) {
   const frame = useWorkspaceStore((state) => state.tool.frame)
   const frameFocus = useWorkspaceStore((state) => state.frameFocus)
   const setFrame = useWorkspaceStore((state) => state.setFrame)
+  const reducedMotion = useWorkspaceStore((state) => state.ui.reducedMotion)
   const stageRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const viewportRef = useRef(frame)
@@ -274,14 +368,27 @@ export function FrameCanvas({
   const gesturingRef = useRef(false)
   const [readout, setReadout] = useState<Readout | null>(null)
   const [panning, setPanning] = useState(false)
-  const { lo, hi } = limits
+  const lo = limits?.lo
+  const hi = limits?.hi
+  const imageRgba = image?.rgba
+  const imageWidth = image?.width
+  const imageHeight = image?.height
 
-  const offscreen = useMemo(() => renderOffscreen(plane, H, W, { lo, hi }), [plane, H, W, lo, hi])
+  const offscreen = useMemo(() => {
+    if (imageRgba && imageWidth && imageHeight) return renderRgba(imageRgba, imageWidth, imageHeight)
+    if (plane && lo !== undefined && hi !== undefined) return renderOffscreen(plane, H, W, { lo, hi })
+    return null
+  }, [imageRgba, imageWidth, imageHeight, plane, H, W, lo, hi])
 
-  const propsRef = useRef<StageProps>({ plane, sigma, H, W, grid, pixelScaleArcsec, drawOverlay })
-  propsRef.current = { plane, sigma, H, W, grid, pixelScaleArcsec, drawOverlay }
+  const propsRef = useRef<StageProps>({ plane, rgba: imageRgba, sigma, H, W, grid, pixelScaleArcsec, drawOverlay, readoutRows })
+  propsRef.current = { plane, rgba: imageRgba, sigma, H, W, grid, pixelScaleArcsec, drawOverlay, readoutRows }
   const offscreenRef = useRef(offscreen)
   offscreenRef.current = offscreen
+  const committedRef = useRef<HTMLCanvasElement | null>(null)
+  const fadeFromRef = useRef<HTMLCanvasElement | null>(null)
+  const fadeTRef = useRef(1)
+  const lastPointRef = useRef<LocalPoint | null>(null)
+  const updateReadoutRef = useRef<(point: LocalPoint) => void>(() => {})
 
   if (seenStore.current !== frame) {
     seenStore.current = frame
@@ -315,9 +422,9 @@ export function FrameCanvas({
   paintRef.current = () => {
     const canvas = canvasRef.current
     const stage = stageRef.current
-    const image = offscreenRef.current
+    const bitmap = offscreenRef.current
     const props = propsRef.current
-    if (!canvas || !stage || !image) return
+    if (!canvas || !stage || !bitmap) return
     const cssW = stage.clientWidth
     const cssH = stage.clientHeight
     if (cssW < 2 || cssH < 2) return
@@ -347,10 +454,21 @@ export function FrameCanvas({
 
     ctx.setTransform(ratioX * placed.scale, 0, 0, ratioY * placed.scale, ratioX * originX, ratioY * originY)
     ctx.imageSmoothingEnabled = false
-    ctx.drawImage(image, 0, 0)
+    const fadeFrom = fadeFromRef.current
+    const fadeT = fadeTRef.current
+    if (fadeFrom && fadeT < 1) {
+      ctx.globalAlpha = 1 - fadeT
+      drawBitmap(ctx, fadeFrom, props.W, props.H)
+      ctx.globalAlpha = fadeT
+      drawBitmap(ctx, bitmap, props.W, props.H)
+      ctx.globalAlpha = 1
+    } else {
+      drawBitmap(ctx, bitmap, props.W, props.H)
+    }
     if (placed.zoom >= HATCH_ZOOM) {
       const cssPixel = placed.scale > 0 ? 1 / placed.scale : 1
-      drawMaskHatch(ctx, props.plane, props.H, props.W, cssPixel)
+      if (props.rgba) drawRgbaMaskHatch(ctx, props.rgba, props.H, props.W, cssPixel)
+      else if (props.plane) drawMaskHatch(ctx, props.plane, props.H, props.W, cssPixel)
     }
     if (props.drawOverlay && placed.scale > 0) {
       const ratio = (ratioX + ratioY) / 2
@@ -417,6 +535,41 @@ export function FrameCanvas({
     scheduleRef.current()
   }, [frameFocus, H, W])
 
+  useLayoutEffect(() => {
+    const next = offscreen
+    const prev = committedRef.current
+    if (!next) return undefined
+    const duration = reducedMotion ? 0 : (crossfadeMs ?? 0)
+    const shouldFade = prev !== null && prev !== next && duration > 0
+    committedRef.current = next
+    if (!shouldFade) {
+      fadeFromRef.current = null
+      fadeTRef.current = 1
+      scheduleRef.current()
+      return undefined
+    }
+    fadeFromRef.current = prev
+    fadeTRef.current = 0
+    const start = performance.now()
+    let raf = 0
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration)
+      fadeTRef.current = t
+      if (t >= 1) fadeFromRef.current = null
+      scheduleRef.current()
+      if (t < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    scheduleRef.current()
+    return () => cancelAnimationFrame(raf)
+  }, [offscreen, crossfadeMs, reducedMotion])
+
+  useEffect(() => {
+    const point = lastPointRef.current
+    if (!point) return
+    updateReadoutRef.current(point)
+  }, [readoutRows, imageRgba, plane])
+
   useEffect(() => {
     // `drawOverlay` is read from props at paint time. Without it here, toggling
     // an overlay (or stepping to a frame whose overlay closure changed while the
@@ -476,6 +629,7 @@ export function FrameCanvas({
   }
 
   function updateReadout(point: LocalPoint): void {
+    lastPointRef.current = point
     const props = propsRef.current
     const size = readSize()
     const view = viewportRef.current
@@ -488,18 +642,22 @@ export function FrameCanvas({
     const x = hit.col
     const y = props.H - 1 - hit.row
     const sampleIndex = y * props.W + x
-    const intensity = props.plane[sampleIndex]
+    const hasPlane = props.plane !== undefined
+    const intensity = hasPlane ? props.plane?.[sampleIndex] : undefined
     const sigmaValue = props.sigma?.[sampleIndex]
     const world = pixelToWorld(x, y, props.grid)
-    const masked = intensity === undefined || Number.isNaN(intensity)
+    const masked = hasPlane && (intensity === undefined || Number.isNaN(intensity))
+    const rows = props.readoutRows?.(x, y) ?? []
     setReadout((prev) => {
       if (
         prev &&
         prev.x === x &&
         prev.y === y &&
         prev.masked === masked &&
+        prev.hasPlane === hasPlane &&
         prev.intensity === intensity &&
-        prev.sigma === sigmaValue
+        prev.sigma === sigmaValue &&
+        sameRows(prev.rows, rows)
       ) {
         return prev
       }
@@ -511,9 +669,13 @@ export function FrameCanvas({
         intensity: intensity ?? Number.NaN,
         sigma: sigmaValue,
         masked,
+        hasPlane,
+        rows,
       }
     })
   }
+
+  updateReadoutRef.current = updateReadout
 
   function startPinch(): PinchGesture | null {
     const points = [...pointersRef.current.values()]
@@ -689,18 +851,25 @@ export function FrameCanvas({
               <span>y {readout.y}</span>
               <span>RA {readout.ra.toFixed(5)}</span>
               <span>Dec {formatDec(readout.dec)}</span>
-              {readout.masked ? (
-                <span>masked</span>
-              ) : (
-                <>
-                  <span>{formatSample(readout.intensity)} MJy/sr</span>
-                  {readout.sigma === undefined ? null : Number.isNaN(readout.sigma) ? (
-                    <span>masked</span>
-                  ) : (
-                    <span>σ {formatSample(readout.sigma)}</span>
-                  )}
-                </>
-              )}
+              {readout.hasPlane ? (
+                readout.masked ? (
+                  <span>masked</span>
+                ) : (
+                  <>
+                    <span>{formatSample(readout.intensity)} MJy/sr</span>
+                    {readout.sigma === undefined ? null : Number.isNaN(readout.sigma) ? (
+                      <span>masked</span>
+                    ) : (
+                      <span>σ {formatSample(readout.sigma)}</span>
+                    )}
+                  </>
+                )
+              ) : null}
+              {readout.rows.map((row) => (
+                <span key={`${row.label}:${row.value}`}>
+                  {row.label} {row.value}
+                </span>
+              ))}
             </>
           ) : (
             <span className="text-zinc-500 dark:text-[#A1A1AA]">Hover a pixel</span>

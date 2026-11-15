@@ -22,6 +22,7 @@ import {
   selectFrames,
   type BlinkMode,
 } from '../core/blink'
+import { clampRgbGain, type RgbGains, type RgbMemberPreset } from '../core/rgb'
 import type { Dataset } from '../data/dataset'
 import { loadDataset as fetchDataset } from '../data/loader'
 import { applyTheme, initialTheme, prefersReducedMotion, writeStoredTheme, type ThemeName } from '../ui/theme'
@@ -115,11 +116,26 @@ export interface SedState {
 
 export type SedPatch = Partial<SedState>
 
+/** False-colour RGB controls. Reset when the dataset changes. §12. */
+export interface RgbState {
+  preset: RgbMemberPreset
+  /** False is per-channel limits. True uses the min low and max high. */
+  linked: boolean
+  gains: RgbGains
+}
+
+export type RgbPatch = {
+  preset?: RgbMemberPreset
+  linked?: boolean
+  gains?: Partial<RgbGains>
+}
+
 export interface ToolState {
   tool: ToolId
   frame: FrameViewport
   blink: BlinkState
   sed: SedState
+  rgb: RgbState
 }
 
 export interface JobState {
@@ -155,6 +171,7 @@ interface WorkspaceStore {
   setFrame: (frame: FrameViewport) => void
   setBlink: (partial: BlinkPatch) => void
   setSed: (partial: SedPatch) => void
+  setRgb: (partial: RgbPatch) => void
   stepBlink: (delta: number) => void
   /** Point the frames blink at one `frames.json` row and open the Blink tool. */
   openFrameInBlink: (frameIndex: number) => void
@@ -228,6 +245,29 @@ function initialSedState(blink: BlinkState): SedState {
   }
 }
 
+/** Detector when that preset exists, otherwise equal-channel. Gains start at 1 and limits are per channel. */
+export function rgbStateFor(dataset: Dataset | null): RgbState {
+  const detector = dataset?.coadds.rgb_presets?.detector_rgb
+  return {
+    preset: detector ? 'detector' : 'equal_channel',
+    linked: false,
+    gains: { red: 1, green: 1, blue: 1 },
+  }
+}
+
+function applyRgb(current: RgbState, partial: RgbPatch): RgbState {
+  const gains = { ...current.gains, ...partial.gains }
+  return {
+    preset: partial.preset ?? current.preset,
+    linked: partial.linked ?? current.linked,
+    gains: {
+      red: clampRgbGain(gains.red),
+      green: clampRgbGain(gains.green),
+      blue: clampRgbGain(gains.blue),
+    },
+  }
+}
+
 /** Fresh SED controls for a loaded dataset. The band copies the Blink window. */
 export function sedStateFor(dataset: Dataset, blink: BlinkState): SedState {
   const present = enabledDetectors(dataset.frames.epochs)
@@ -280,12 +320,13 @@ const bootTheme = initialTheme()
 applyTheme(bootTheme)
 const bootReducedMotion = prefersReducedMotion()
 const bootBlink = blinkForFrames([], bootReducedMotion)
+const bootRgb = rgbStateFor(null)
 
 export const useWorkspaceStore = create<WorkspaceStore>()((set) => ({
   view: { ra: 0, dec: 0, fov: DEFAULT_FOV_DEG },
   frameFocus: null,
   gaiaLayer: false,
-  tool: { tool: 'map', frame: initialFrame(), blink: bootBlink, sed: initialSedState(bootBlink) },
+  tool: { tool: 'map', frame: initialFrame(), blink: bootBlink, sed: initialSedState(bootBlink), rgb: bootRgb },
   dataset: { slug: null, status: 'idle', dataset: null, errorCode: null },
   job: { status: 'idle' },
   ui: {
@@ -309,6 +350,10 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set) => ({
   setSed: (partial) =>
     set((state) => ({
       tool: { ...state.tool, sed: { ...state.tool.sed, ...partial } },
+    })),
+  setRgb: (partial) =>
+    set((state) => ({
+      tool: { ...state.tool, rgb: applyRgb(state.tool.rgb, partial) },
     })),
   stepBlink: (delta) =>
     set((state) => {
@@ -375,6 +420,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set) => ({
           frame: initialFrame(),
           blink,
           sed: initialSedState(blink),
+          rgb: rgbStateFor(null),
         },
       }
     })
@@ -400,6 +446,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set) => ({
             ...state.tool,
             blink,
             sed: sedStateFor(dataset, blink),
+            rgb: rgbStateFor(dataset),
           },
         }
       })

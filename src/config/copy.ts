@@ -433,3 +433,45 @@ export function cubeWavelengthLabel(lambdaUm: number, bandwidthUm: number | null
   if (bandwidthUm == null) return `${lambdaUm} µm`
   return `${lambdaUm} µm · bandwidth ${bandwidthUm} µm`
 }
+
+/** False-colour RGB. FRONTEND_SPEC §12. Feature and Custom stay disabled until F14. */
+export const rgbCopy = {
+  loading: 'Loading false-colour RGB',
+  presets: 'RGB preset',
+  detector: 'Detector',
+  equalChannel: 'Equal-channel',
+  feature: 'Feature',
+  custom: 'Custom',
+  comingLater: 'Coming later',
+  needsDetectors: 'Needs at least 3 detectors with data',
+  serverPreview: 'Server preview',
+  compositorUnavailable: 'Client compositor unavailable',
+  noSlotData: 'No data for this slot',
+  motionSmear: 'Motion smears in multi-epoch coadds',
+  limits: 'Stretch limits',
+  perChannel: 'Per-channel',
+  linked: 'Linked',
+  gainRed: 'Red gain',
+  gainGreen: 'Green gain',
+  gainBlue: 'Blue gain',
+  slotRed: 'R',
+  slotGreen: 'G',
+  slotBlue: 'B',
+  blueSlot: 'Blue',
+  greenSlot: 'Green',
+  redSlot: 'Red',
+  intensityUnit: 'MJy/sr',
+  masked: 'masked',
+  ariaLabel: 'False-colour RGB, north up, east left.',
+} as const
+
+/** Detector-group composition, blue first (lowest wavelength). */
+export function rgbGroupLine(blue: readonly number[], green: readonly number[], red: readonly number[]): string {
+  const names = (detectors: readonly number[]) => detectors.map((detector) => `D${detector}`).join(' ')
+  return `B: ${names(blue)}, G: ${names(green)}, R: ${names(red)}`
+}
+
+/** Per-group SNR and the minimum that selected the partition. */
+export function rgbGroupSnr(blue: string, green: string, red: string, min: string): string {
+  return `Group SNR B ${blue}, G ${green}, R ${red}; min ${min}`
+}
